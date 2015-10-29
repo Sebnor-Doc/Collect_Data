@@ -1,0 +1,26 @@
+% FORMAT: word; pronunciation; meaning; Alternative Language
+
+class: letter
+Iterations: 3
+
+a;a;a
+m;m;m
+l;l;l
+t;t;t
+
+
+class: phoneme
+Iterations: 3
+
+shoe;shoe;shoe
+shoot;shoot;shoot
+toot;toot;toot
+loot;loot;loot
+
+class: word
+Iterations: 3
+
+hello;hello;hello
+hepo;hepo;hepo
+typo;typo;typo
+time;time;time
