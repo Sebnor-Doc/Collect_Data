@@ -19,6 +19,7 @@ SOURCES += main.cpp\
     Magnet.cpp \
     Sensor.cpp \
     ReadSensors.cpp \
+    sensordisplay.cpp
 
 HEADERS  += TTS_GUI.h \
     qcustomplot.h \
@@ -30,9 +31,11 @@ HEADERS  += TTS_GUI.h \
     Magnet.h \
     Sensor.h \
     ReadSensors.h \
+    sensordisplay.h
 
 FORMS    += \
-    TTS_GUI.ui
+    TTS_GUI.ui \
+    sensordisplay.ui
 
 LIBS += -lAdvapi32 -lgdi32 -luser32 -lshell32
 

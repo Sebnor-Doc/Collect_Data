@@ -18,11 +18,11 @@ const int NUM_OF_BYTES_PER_SENSOR = 6;
 
 
 //Plot details
-const int NUM_ROWS_PLOTS = 6;
-const int NUM_COLS_PLOTS = 4;
+//const int NUM_ROWS_PLOTS = 6;
+//const int NUM_COLS_PLOTS = 4;
 const int RANGE_VALS = 33000;
-const int SENSOR_WORKING_THRESHOLD = 100;
-const int LPlot_count = 1;
+//const int SENSOR_WORKING_THRESHOLD = 100;
+//const int LPlot_count = 1;
 
 
 // Others

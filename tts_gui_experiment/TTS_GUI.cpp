@@ -8,8 +8,13 @@
 #include <QDebug>
 #include <QFile>
 #include "CImg.h"
+#include <QUrl>
+#include <QAudioEncoderSettings>
+#include <QCloseEvent>
+
 #include <QCameraInfo>
-#include <QCameraViewfinder>
+
+
 
 
 #include <boost/lexical_cast.hpp>
@@ -46,40 +51,16 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     rs->Play();
 
     // TO BE REPLACED BY EXTERNAL XML FILE
-    ui->expFileEdit->setText("C:/Users/nsebkhi3/GitHub/GTBionics - TTS/Data_Collection_NEU/NEU_Experiments.txt");
-    ui->ttsSystEdit->setText("C:/Users/nsebkhi3/GitHub/GTBionics - TTS/Data_Collection_NEU/tts_gui_experiment/temp/calibration - TTS001BT - largemagnet.xml");
+    ui->expFileEdit->setText("C:/Users/nsebkhi3/GitHub/GTBionics - TTS/Data_Collection_NEU/Experiments/NEU_Experiments.txt");
+    ui->ttsSystEdit->setText("C:/Users/nsebkhi3/GitHub/GTBionics - TTS/Data_Collection_NEU/Calibration/TTS 002-BT - Large Magnet.xml");
     ui->subPathEdit->setText("C:/TTS_Data/Test");
     ui->subNbEdit->setText("99");
 
 
-    //Initialize Video
+    // Initialize Media
     setCamera();
+    setAudio();
 
-
-//    video = new VideoThread();
-//    video->Play();
-
-//    ps = new PostProcessStreams();
-//    ps->numTrials = expRepeat.at(0);
-
-//    //Initialize Audio Threads (currently not on a thread..)
-//    audio1 = new AudioRecorder(0,0);
-//    audio2 = new AudioRecorder(0,1);
-//    audioThread1 = new QThread;
-//    audioThread2 = new QThread;
-//    audio1->moveToThread(audioThread1);
-//    audio2->moveToThread(audioThread2);
-//    audioThread1->start();
-//    audioThread2->start();
-
-//    //Localization Thread
-//    lt = new LocalizationThread(0, rs);
-
-
-    // Connect Signals to Slots
-//    connect(&audioTimer, SIGNAL(timeout()), this, SLOT(updateAudioLevels()));
-//    connect(video, SIGNAL(processedImage(QImage)), this, SLOT(updatePlayerUI(QImage)));
-//    connect(ps->ct, SIGNAL(processedTrajectory(double, double, double, double, double)), this, SLOT(updatePlotFeedback(double, double, double, double, double)));
 }
 
 // Setup the experiment
@@ -134,14 +115,6 @@ void MainWindow::setupExperiment()
     for (int i = 0; i < classUtter.size(); i++)
     {
         ui->classBox->addItem(classUtter.at(i) + "\t\t" + QString::number(i+1) + "/" + QString::number(classUtter.size()));
-    }
-    for (int j = 0; j < utter.at(0)->size(); j++)
-    {
-        ui->utteranceBox->addItem((utter.at(0)->at(j)+ "\t\t" + QString::number(j+1) + "/" + QString::number(utter.at(0)->size())));
-    }
-    for (int k = 0; k < numTrials.at(0); k++)
-    {
-        ui->trialBox->addItem(QString::number(k+1) + " / " + QString::number(numTrials.at(0)));
     }
 
     // Update utterance display
@@ -299,6 +272,33 @@ void MainWindow::on_measureEMFButton_clicked()
     ui->startStopTrialButton->setEnabled(true);
 }
 
+/* Graph Sensor data */
+void MainWindow::on_showMagButton_toggled(bool checked)
+{
+    if (checked) {
+        ui->showMagButton->setText("Hide Sensors");
+        sensorUi = new SensorDisplay(this, rs);
+        sensorUi->show();
+        connect(sensorUi, SIGNAL(closed()), this, SLOT(sensorDisplayClosed()));
+
+    } else {
+        ui->showMagButton->setText("Show Sensors");
+        disconnect(sensorUi, SIGNAL(closed()), this, SLOT(sensorDisplayClosed()));
+
+        if (sensorUi) {
+            delete sensorUi;
+        }
+
+    }
+}
+
+void MainWindow::sensorDisplayClosed(){
+    ui->showMagButton->setChecked(false);
+}
+
+
+
+
 /* Video player */
 void MainWindow::setCamera(){
     // Find LifeCam webcam and assign it to "camera" variable
@@ -320,8 +320,6 @@ void MainWindow::setCamera(){
     }
 
     camera->setCaptureMode(QCamera::CaptureVideo);
-    camera->setViewfinder(ui->cameraPlayer);
-
 }
 
 void MainWindow::on_showVideoCheckBox_clicked()
@@ -336,22 +334,144 @@ void MainWindow::on_showVideoCheckBox_clicked()
     }
 }
 
+/* Audio */
+void MainWindow::setAudio(){
 
+    audio1 = new QAudioRecorder();
+    audio2 = new QAudioRecorder();
+
+    QStringList audioDevices = audio1->audioInputs();
+
+    foreach (QString device, audioDevices) {
+
+        if (device.contains("USB PnP"))
+        {
+            if (!audio1->audioInput().contains("USB PnP")) {
+                audio1->setAudioInput(device);
+
+            } else if (device.compare(audio1->audioInput()) != 0) {
+                audio2->setAudioInput(device);
+                break;
+            }
+        }
+    }
+
+    // High Settings
+    QAudioEncoderSettings settings;
+    settings.setQuality(QMultimedia::VeryHighQuality);
+    settings.setEncodingMode(QMultimedia::ConstantQualityEncoding);
+    settings.setSampleRate(44100);
+
+    audio1->setAudioSettings(settings);
+    audio2->setAudioSettings(settings);
+
+    qDebug() << "Audio Source 1: " << audio1->audioInput();
+    qDebug() << "Audio Source 2: " << audio2->audioInput() << endl;
+
+    audioProbe1 = new QAudioProbe();
+    audioProbe2 = new QAudioProbe();
+    audioProbe1->setSource(audio1);
+    audioProbe2->setSource(audio2);
+
+    audio1->record();
+    audio2->record();
+
+    connect(audioProbe1, SIGNAL(audioBufferProbed(QAudioBuffer)), this, SLOT(updateAudioLevels(QAudioBuffer)));
+    connect(audioProbe2, SIGNAL(audioBufferProbed(QAudioBuffer)), this, SLOT(updateAudioLevels(QAudioBuffer)));
+
+}
+
+void MainWindow::updateAudioLevels(QAudioBuffer audioBuffer) {
+
+//    const quint16 *audioData = audioBuffer.constData<quint16>();
+//    qDebug() << "audioData: " << (int) audioData;
+
+//    int numSamples = audioBuffer.frameCount();
+//    qDebug() << "Frame count: " << numSamples;
+
+
+//    qDebug() << "Duration: " << audioBuffer.duration();
+//    qDebug() << "Frame count: " << audioBuffer.frameCount();
+//    qDebug() << "Start time: " << audioBuffer.startTime();
+//    qDebug() << "Sample type: " << audioBuffer.format().sampleType();
+
+    if (sender() == audioProbe1) {
+        ui->leftVolumeBar->setValue(0);
+    } else {
+        ui->rightVolumeBar->setValue(0);
+    }
+
+
+}
+
+/* Data collection */
 void MainWindow::on_startStopTrialButton_toggled(bool checked)
 {
     if (checked) {
-        ui->startStopTrialButton->setText("Stop");
+        ui->startStopTrialButton->setText("Stop");       
         beginTrial();
 
-    } else {
-        ui->startStopTrialButton->setText("Start");
+    } else {       
         stopTrial();
+        ui->startStopTrialButton->setText("Start");
     }
 }
 
+void MainWindow::beginTrial(){
+    // Update output file paths
+    setFilePath();
 
+    //Color the boxes
+    QString formatUtterance = QString("<font size=\"34\" color=\"red\">%1</font>")
+                              .arg(utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex()));
+    ui->utteranceBrowser->setText(formatUtterance);
+
+    // Start data recording
+    rs->setFileLocationAndName(experiment_output_path + "_raw_sensor.txt"); // Magnetic stream
+    rs->saveToFile();
+
+    audio1->stop();
+    audio2->stop();
+    audio1->setOutputLocation(QUrl::fromLocalFile(experiment_output_path + "_audio1.wav"));
+    audio2->setOutputLocation(QUrl::fromLocalFile(experiment_output_path + "_audio2.wav"));
+    audio1->record();
+    audio2->record();
+
+    //    video->setVideoName(experiment_output_path + "_video.avi");             // Video stream
+
+//    lt->setFileLocationAndName(experiment_output_path + "_localization.txt");  // Tongue Trajectory
+//    lt->setSensorFile(experiment_output_path + "_raw_sensor.txt");
+
+    // Post processing files
+//    ps->setReferenceFile(reference_input_path + "_localization.txt");
+//    ps->setExperimentalFile(experiment_output_path + "_localization.txt");
+
+
+    // Begin Recording data
+//    key_start = QDateTime::currentDateTime().toMSecsSinceEpoch();
+//    audio1->beginSavingAudio();
+//    audio2->beginSavingAudio();
+//    video->startVideo();
+
+
+//    lt->saveToFile();
+
+}
+
+void MainWindow::stopTrial(){
+
+    rs->stopSavingToFile();
+
+    audio1->stop();
+    audio2->stop();
+
+}
+
+/* Manage Drop-down lists */
 void MainWindow::on_classBox_currentIndexChanged(int index)
 {
+    disconnect(ui->utteranceBox, SIGNAL(currentIndexChanged(int)), this, SLOT(on_utteranceBox_currentIndexChanged(int)));
+
     // Clear utterance and trial drop-down list
     ui->utteranceBox->clear();
     ui->trialBox->clear();
@@ -359,45 +479,35 @@ void MainWindow::on_classBox_currentIndexChanged(int index)
     // Populate list of utterances for this class
     for(int j = 0; j < utter.at(index)->size(); j++)
     {
-        ui->utteranceBox->addItem(utter.at(index)->at(j));
+        QString formatUtter = utter.at(index)->at(j) + "\t\t" + QString::number(j+1) + "/" + QString::number(utter.at(index)->size());
+        ui->utteranceBox->addItem(formatUtter);
     }
 
     // Populate list of trial numbers for this class
     for (int i = 0; i < numTrials.at(index); i++)
     {
-        ui->trialBox->addItem(QString::number(i+1));
+        ui->trialBox->addItem(QString::number(i+1) + " / " + QString::number(numTrials.at(index)));
     }
 
     // Update utterrance display
     ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(ui->classBox->currentIndex())->at(0) + QString("</font>"));
 
-    // Update saving paths
-    setFilePath();
+    // Reset drop-down list to first item
+    ui->utteranceBox->setCurrentIndex(0);
+    ui->trialBox->setCurrentIndex(0);
+
+    connect(ui->utteranceBox, SIGNAL(currentIndexChanged(int)), this, SLOT(on_utteranceBox_currentIndexChanged(int)));
 }
 
 void MainWindow::on_utteranceBox_currentIndexChanged(int index)
 {
     ui->trialBox->setCurrentIndex(0);
-
     ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(ui->classBox->currentIndex())->at(index) + QString("</font>"));
 
-    // Update saving paths
-    setFilePath();
+//    // Update saving paths
+//    setFilePath();
 }
 
-void MainWindow::on_trialBox_currentIndexChanged(int index)
-{
-
-}
-
-
-void MainWindow::beginTrial(){
-
-}
-
-void MainWindow::stopTrial(){
-
-}
 
 /* ********************************************************* *
  *              Helper Methods                               *
@@ -452,16 +562,20 @@ CImg<double> MainWindow::loadMatrix(string myString)
     return myMatrix;
 }
 
-/* Destructor */
+
+
+/* Closing methods */
+void MainWindow::closeEvent(QCloseEvent *event){
+    audio1->stop();
+    audio2->stop();
+    event->accept();
+}
+
 MainWindow::~MainWindow()
 {
     delete ui;
     delete camera;
 }
-
-
-
-
 
 
 

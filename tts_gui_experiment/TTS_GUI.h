@@ -2,15 +2,21 @@
 #define TTS_GUI_H
 
 #include <QMainWindow>
-#include <string>
-#include <QCamera>
 
 #define WIN32_LEAN_AND_MEAN // Necessary due to problems with Boost
 #include "ReadSensors.h"
 #include "Magnet.h"
 #include "common.h"
-//#include "videothread.h"
+#include "sensordisplay.h"
 
+#include <string>
+
+#include <QAudioRecorder>
+#include <QAudioProbe>
+#include <QaudioBuffer>
+#include <QTimer>
+
+#include <QCamera>
 #include <QImage>
 
 #include "CImg.h"
@@ -32,20 +38,20 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
+    void closeEvent(QCloseEvent *event);
 
 
 private slots:
     void on_configButton_clicked();
     void on_measureEMFButton_clicked();
     void on_showVideoCheckBox_clicked();
-
     void on_startStopTrialButton_toggled(bool checked);
-
     void on_classBox_currentIndexChanged(int index);
-
     void on_utteranceBox_currentIndexChanged(int index);
+    void updateAudioLevels(QAudioBuffer audioBuffer);
 
-    void on_trialBox_currentIndexChanged(int index);
+    void on_showMagButton_toggled(bool checked);
+    void sensorDisplayClosed();
 
 private:
     Ui::MainWindow *ui;
@@ -53,8 +59,14 @@ private:
     Magnet magnet;
     Sensor *sensors[NUM_OF_SENSORS];
     ReadSensors *rs;
-    QCamera *camera;
 
+    QAudioRecorder *audio1;
+    QAudioRecorder *audio2;
+    QAudioProbe *audioProbe1;
+    QAudioProbe *audioProbe2;
+    QTimer *audioTimer;
+
+    QCamera *camera;
 
     // String lists for Experimental Setup
     vector<QString> classUtter;
@@ -69,6 +81,7 @@ private:
     QString experiment_output_path;
     QString emfFile;
 
+    SensorDisplay *sensorUi;
 
     //    QFile experiment_output_file;
     //    QTextStream *experiment_output_stream;
@@ -82,13 +95,14 @@ private:
     void setupExperiment();
     void loadExperimentFile(QString experimentFile);
     void setCamera();
+    void setAudio();
     void beginTrial();
     void stopTrial();
 
     void setFilePath();
     CImg<double> loadVector(string myString);
     CImg<double> loadMatrix(string myString);
-
+    qreal getPeakValue(const QAudioFormat& format);
 
 };
 

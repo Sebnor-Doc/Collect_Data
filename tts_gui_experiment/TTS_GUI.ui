@@ -218,7 +218,7 @@ p, li { white-space: pre-wrap; }
      <rect>
       <x>20</x>
       <y>10</y>
-      <width>1081</width>
+      <width>951</width>
       <height>91</height>
      </rect>
     </property>
@@ -369,27 +369,25 @@ p, li { white-space: pre-wrap; }
      </property>
     </widget>
    </widget>
-   <widget class="QCameraViewfinder" name="cameraPlayer" native="true">
+   <widget class="QPushButton" name="showMagButton">
     <property name="geometry">
      <rect>
-      <x>510</x>
-      <y>370</y>
-      <width>301</width>
-      <height>171</height>
+      <x>984</x>
+      <y>20</y>
+      <width>111</width>
+      <height>71</height>
      </rect>
+    </property>
+    <property name="text">
+     <string>Show Sensors</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
     </property>
    </widget>
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <customwidgets>
-  <customwidget>
-   <class>QCameraViewfinder</class>
-   <extends>QWidget</extends>
-   <header>qcameraviewfinder.h</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>
