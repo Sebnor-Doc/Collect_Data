@@ -8,9 +8,12 @@
 #include "Magnet.h"
 #include "common.h"
 #include "sensordisplay.h"
+#include "Localization.h"
 
 #include <string>
+#include <vector>
 
+#include <QVector>
 #include <QAudioRecorder>
 #include <QAudioProbe>
 #include <QaudioBuffer>
@@ -35,6 +38,42 @@ class MainWindow : public QMainWindow
 /* **************************************************** *
  *              Variables                               *
  * **************************************************** */
+private:
+    Ui::MainWindow *ui;
+    Magnet magnet;
+    QVector<Sensor*> sensors;
+    ReadSensors *rs;
+    Localization *loca;
+
+    // Audio
+    QAudioRecorder *audio1;
+    QAudioRecorder *audio2;
+    QAudioProbe *audioProbe1;
+    QAudioProbe *audioProbe2;
+    QTimer *audioTimer;
+
+    // Camera
+    QCamera *camera;
+
+    // Utterances
+    QList<QString> classUtter;
+    QList<QStringList*> utter;
+    int numTrials;
+
+    // Output File locations
+    QString experiment_root;
+    QString experiment_class;
+    QString experiment_utter;
+    QString experiment_output_path;
+    QString emfFile;
+
+    // Display sensor UI
+    SensorDisplay *sensorUi;
+
+
+/* **************************************************** *
+ *              Methods                                 *
+ * **************************************************** */
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
@@ -49,56 +88,21 @@ private slots:
     void on_classBox_currentIndexChanged(int index);
     void on_utteranceBox_currentIndexChanged(int index);
     void updateAudioLevels(QAudioBuffer audioBuffer);
-
     void on_showMagButton_toggled(bool checked);
     void sensorDisplayClosed();
+    void saveEMF();
+    void on_trialBox_currentIndexChanged(int index);
+
 
 private:
-    Ui::MainWindow *ui;
-    QString calibration_xml;
-    Magnet magnet;
-    Sensor *sensors[NUM_OF_SENSORS];
-    ReadSensors *rs;
-
-    QAudioRecorder *audio1;
-    QAudioRecorder *audio2;
-    QAudioProbe *audioProbe1;
-    QAudioProbe *audioProbe2;
-    QTimer *audioTimer;
-
-    QCamera *camera;
-
-    // String lists for Experimental Setup
-    vector<QString> classUtter;
-    vector<QStringList*> utter;
-    vector<int> numTrials;
-    int exp_count_p;
-
-    // File locations
-    QString experiment_root;
-    QString experiment_class;
-    QString experiment_utter;
-    QString experiment_output_path;
-    QString emfFile;
-
-    SensorDisplay *sensorUi;
-
-    //    QFile experiment_output_file;
-    //    QTextStream *experiment_output_stream;
-
-
-/* **************************************************** *
- *              Methods                                 *
- * **************************************************** */
-private:
-    void loadCalibration(Magnet& magnet, string pathCalibration);
+    void loadConfig();
+    void loadCalibration(QString calibFilename);
     void setupExperiment();
     void loadExperimentFile(QString experimentFile);
     void setCamera();
     void setAudio();
     void beginTrial();
     void stopTrial();
-
     void setFilePath();
     CImg<double> loadVector(string myString);
     CImg<double> loadMatrix(string myString);

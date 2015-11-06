@@ -14,9 +14,6 @@
 
 #include <QCameraInfo>
 
-
-
-
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
 using boost::escaped_list_separator;
@@ -29,6 +26,8 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     //Display GUI
     ui->setupUi(this);
 
+    loadConfig();
+
     // Disable buttons to enforce proper config sequence
     ui->startStopTrialButton->setEnabled(false);
     ui->measureEMFButton->setEnabled(false);
@@ -36,34 +35,109 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     // Connect to Mojo
     rs = new ReadSensors();
 
-    QSerialPortInfo mojoComPort;
-    QList<QSerialPortInfo> listOfPorts = QSerialPortInfo::availablePorts();
-
-    foreach(QSerialPortInfo port, listOfPorts) {
-
-        if (port.productIdentifier() == 32769) {
-            mojoComPort = port;
-            break;
-        }
-    }
-
-    rs->setCOMPort(mojoComPort.portName());
-    rs->Play();
-
-    // TO BE REPLACED BY EXTERNAL XML FILE
-    ui->expFileEdit->setText("C:/Users/nsebkhi3/GitHub/GTBionics - TTS/Data_Collection_NEU/Experiments/NEU_Experiments.txt");
-    ui->ttsSystEdit->setText("C:/Users/nsebkhi3/GitHub/GTBionics - TTS/Data_Collection_NEU/Calibration/TTS 002-BT - Large Magnet.xml");
-    ui->subPathEdit->setText("C:/TTS_Data/Test");
-    ui->subNbEdit->setText("99");
-
-
     // Initialize Media
     setCamera();
     setAudio();
 
 }
 
-// Setup the experiment
+
+/* System and Session Configuration  */
+void MainWindow::on_configButton_clicked()
+{
+    // Load calibration data and initialize sensors[] vector
+    QString calibFilename = QString("TTS %1 - %2.xml").arg(ui->serialNumBox->currentText()).arg(ui->magnetTypeBox->currentText());
+    loadCalibration(calibFilename);
+
+    // Setup procedures
+    setupExperiment();
+
+
+    loca = new Localization(rs, sensors, magnet, this);
+
+    // Set state of buttons
+    ui->measureEMFButton->setEnabled(true);
+    ui->configButton->setEnabled(false);
+}
+
+void MainWindow::loadConfig() {
+    // The config file should be in the same folder than executable
+    QString configFile = QCoreApplication::applicationDirPath() + "/Config.xml";
+
+    // Create the root of the tree
+    pugi::xml_document config;
+    config.load_file(configFile.toStdString().c_str());
+
+    // Create a child node from "config"
+    pugi::xml_node nodeConfig = config.child("config");
+
+    // Set system serial number from index
+    int serialIdx = boost::lexical_cast<int>(nodeConfig.child("serialNum").child_value());
+
+    if ( (serialIdx > 0) && (serialIdx < ui->serialNumBox->count()) ) {
+        ui->serialNumBox->setCurrentIndex(serialIdx);
+    }
+    else {
+        ui->serialNumBox->setCurrentIndex(0);
+    }
+
+    // Set magnet type from index
+    int magnetIdx = boost::lexical_cast<int>(nodeConfig.child("magnet").child_value());
+
+    if ( (magnetIdx > 0) && (magnetIdx < ui->magnetTypeBox->count()) ) {
+        ui->magnetTypeBox->setCurrentIndex(magnetIdx);
+    }
+    else {
+        ui->magnetTypeBox->setCurrentIndex(0);
+    }
+
+    // Set Experiment file location
+    QString experimentFile = QString::fromStdString(nodeConfig.child("experiment").child_value()) + ".txt";
+    QString experimentPath = QCoreApplication::applicationDirPath() + "/Experiment/" + experimentFile;
+    ui->expFileEdit->setText(experimentPath);
+
+    // Set others
+    ui->subPathEdit->setText(QString::fromStdString(nodeConfig.child("data").child_value()));
+    ui->subNbEdit->setText("1");
+}
+
+void MainWindow::loadCalibration(QString calibFilename) {
+
+    QString calibPath = QCoreApplication::applicationDirPath() + "/Calibration/" + calibFilename;
+
+    // Create the root of the tree
+    pugi::xml_document doc;
+    doc.load_file(calibPath.toStdString().c_str());
+
+    // Create a child node from "calibration"
+    pugi::xml_node nodeCalibration = doc.child("calibration");
+
+    // Set Magnet's instance variables to data from calibration file
+    pugi::xml_node nodeMagnet = nodeCalibration.child("magnet");
+    magnet.diameter(boost::lexical_cast<double>(nodeMagnet.child("diameter").child_value()));
+    magnet.length(boost::lexical_cast<double>(nodeMagnet.child("length").child_value()));
+    magnet.Br(boost::lexical_cast<double>(nodeMagnet.child("Br").child_value()));
+    magnet.Bt(boost::lexical_cast<double>(nodeMagnet.child("Bt").child_value()));
+
+    // Instantiate Sensor objects and set their instance variables (id, position , gain, ...)
+    int i = 0;
+    for (pugi::xml_node nodeSensor = nodeCalibration.child("sensor"); nodeSensor; nodeSensor = nodeSensor.next_sibling("sensor"))
+    {
+        Sensor *newSensor = new Sensor();
+        newSensor->id = nodeSensor.attribute("id").as_uint();
+        newSensor->position(loadVector(nodeSensor.child("position").child_value()));
+        newSensor->EMF(loadVector(nodeSensor.child("EMF").child_value()));
+        newSensor->offset(loadVector(nodeSensor.child("offset").child_value()));
+        newSensor->gain(loadMatrix(nodeSensor.child("gain").child_value()));
+        newSensor->angles(loadVector(nodeSensor.child("angles").child_value()));
+
+        sensors.push_back(newSensor);
+        //sensors[i]->print();  // Print sensor parameters
+        i++;
+    }
+
+}
+
 void MainWindow::setupExperiment()
 {
     // Set utter, utterClass and numTrials vectors
@@ -100,7 +174,7 @@ void MainWindow::setupExperiment()
                 qDebug() << "Utterance path couldn't be created: " << utterPath;
             }
 
-            for (int k = 0; k < numTrials.at(i); k++)
+            for (int k = 0; k < numTrials; k++)
             {
                 QString trialPath = utterPath + "/" + word + "_" + QString::number(k+1);
 
@@ -114,53 +188,25 @@ void MainWindow::setupExperiment()
     // Populate dropdown menu with first set of experimental words
     for (int i = 0; i < classUtter.size(); i++)
     {
+        // Populate class name
         ui->classBox->addItem(classUtter.at(i) + "\t\t" + QString::number(i+1) + "/" + QString::number(classUtter.size()));
     }
+    ui->classBox->setCurrentIndex(0);   // Update utterance box due to classBox_currentIdxChanged slot
+
+    for (int trial = 1; trial <= numTrials; trial++) {
+        // Populate trial numbers
+        ui->trialBox->addItem(QString::number(trial) + " / " + QString::number(numTrials));
+    }
+
 
     // Update utterance display
-    ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex())
-                                  + QString("</font>"));
+//    ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex())
+//                                  + QString("</font>"));
 
     // Set instance variables for folder/file paths
     setFilePath();
 }
 
-
-void MainWindow::loadCalibration(Magnet& magnet, string pathCalibration) {
-
-    // Create the root of the tree
-    pugi::xml_document doc;
-    doc.load_file(pathCalibration.c_str());
-
-    // Create a child node from "calibration"
-    pugi::xml_node nodeCalibration = doc.child("calibration");
-
-    // Set Magnet's instance variables to data from calibration file
-    pugi::xml_node nodeMagnet = nodeCalibration.child("magnet");
-    magnet.diameter(boost::lexical_cast<double>(nodeMagnet.child("diameter").child_value()));
-    magnet.length(boost::lexical_cast<double>(nodeMagnet.child("length").child_value()));
-    magnet.Br(boost::lexical_cast<double>(nodeMagnet.child("Br").child_value()));
-    magnet.Bt(boost::lexical_cast<double>(nodeMagnet.child("Bt").child_value()));
-
-    // Display Magnet attributes (diameter, length, Br, Bt, theta, phi, moment, position)
-//    magnet.print();
-
-    // Instantiate Sensor objects and set their instance variables (id, position , gain, ...)
-    int i = 0;
-    for (pugi::xml_node nodeSensor = nodeCalibration.child("sensor"); nodeSensor; nodeSensor = nodeSensor.next_sibling("sensor"))
-    {
-        sensors[i] = new Sensor();
-        sensors[i]->id = nodeSensor.attribute("id").as_uint();
-        sensors[i]->position(loadVector(nodeSensor.child("position").child_value()));
-        sensors[i]->EMF(loadVector(nodeSensor.child("EMF").child_value()));
-        sensors[i]->offset(loadVector(nodeSensor.child("offset").child_value()));
-        sensors[i]->gain(loadMatrix(nodeSensor.child("gain").child_value()));
-        sensors[i]->angles(loadVector(nodeSensor.child("angles").child_value()));
-        //sensors[i]->print();  // Print sensor parameters
-        i++;
-    }
-
-}// end loadCalibration method
 
 /**
  * Set utter, classUtter and numTrials vectors from a list of utterances in the experiment file
@@ -172,14 +218,11 @@ void MainWindow::loadExperimentFile(QString experimentFile)
     QTextStream in(&input);
     in.setCodec("UTF-8");
 
-    QString line;
-    exp_count_p = -1;
-
     if (input.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         while(!in.atEnd())
         {
-            line = in.readLine();
+            QString line = in.readLine();
 
             if (line.trimmed().isEmpty() || line.trimmed().at(0) == '%')
             {
@@ -194,18 +237,17 @@ void MainWindow::loadExperimentFile(QString experimentFile)
 
                 // Initialize new list of utterances
                 utter.push_back(new QStringList());
-                exp_count_p++;
             }
 
             else if (line.contains("Iter", Qt::CaseInsensitive))
             {
                 int ind = line.indexOf(':');
-                numTrials.push_back(((line.mid(ind+1)).trimmed()).toInt());
+                numTrials = line.mid(ind+1).trimmed().toInt();
             }
 
             else
             {
-                utter.at(exp_count_p)->append(line.trimmed());
+                utter.back()->append(line.trimmed());
             }
         }
     }
@@ -215,62 +257,159 @@ void MainWindow::loadExperimentFile(QString experimentFile)
 }
 
 
-
-void MainWindow::on_configButton_clicked()
-{
-    // Load calibration data and initialize sensors[] vector
-    calibration_xml = ui->ttsSystEdit->text();
-    loadCalibration(magnet, calibration_xml.toStdString());
-
-    // Setup procedures
-    setupExperiment();
-
-    // Set state of buttons
-    ui->measureEMFButton->setEnabled(true);
-    ui->configButton->setEnabled(false);
-}
-
+/* Measure EMF */
 void MainWindow::on_measureEMFButton_clicked()
 {
     // Set EMF file path
     QString currentDateTime = QDateTime::currentDateTime().toString("yy-MM-dd_hh-mm");
     emfFile = experiment_root + "/EMF_" + currentDateTime + ".txt";
 
-    QFile outputEMF(emfFile);
-    QTextStream output_stream(&outputEMF);
+    rs->setFileLocation(emfFile);
+    rs->saveToFile();
+    rs->Play();
 
-    // Read magnetic values
-    int num_iterations = 100;
+    QTimer::singleShot(1000, this, SLOT(saveEMF()));
+}
 
-    if (outputEMF.open(QIODevice::WriteOnly | QIODevice::Text))
-    {
-        for (int iter = 0; iter < num_iterations; iter++)
-        {
+void MainWindow::saveEMF() {
+    // Stop saving and recording magnetic data
+    rs->stopSavingToFile();
+    rs->Stop();
 
-            for (int i = 0; i < NUM_OF_SENSORS; i++)
-            {
-                int x = rs->getSensorData(i/NUM_OF_SENSORS_PER_BOARD, i%NUM_OF_SENSORS_PER_BOARD, 0);
-                int y = rs->getSensorData(i/NUM_OF_SENSORS_PER_BOARD, i%NUM_OF_SENSORS_PER_BOARD, 1);
-                int z = rs->getSensorData(i/NUM_OF_SENSORS_PER_BOARD, i%NUM_OF_SENSORS_PER_BOARD, 2);
+    MagData avgEMF;
+    avgEMF.fill(0, 3*NUM_OF_SENSORS);
 
-                sensors[i]->m_EMF += cimg_library::CImg<double>().assign(1,3).fill(x,y,z);
+    int numSamples = 0;
+
+    // Compute average of EMF samples
+    QFile rawEmfFile(emfFile);
+    QTextStream emfDataStream(&rawEmfFile);
+
+    if (rawEmfFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        while(!emfDataStream.atEnd()) {
+            QStringList sample = emfDataStream.readLine().split(" ");
+            numSamples++;
+
+            for (int i = 0; i < avgEMF.size(); i++) {
+                avgEMF[i] += ((QString)sample.at(i)).toInt();
             }
         }
-
-        // Take the average
-        for (int i = 0; i < NUM_OF_SENSORS; i++)
-        {
-            sensors[i]->m_EMF = sensors[i]->m_EMF / num_iterations;
-            output_stream << sensors[i]->m_EMF(0) << " " << sensors[i]->m_EMF(1) << " " << sensors[i]->m_EMF(2) << endl;
-        }
-        outputEMF.close();
     }
+    else {
+        qDebug() << "ERROR: CANNOT READ EMF FILE";
+    }
+    rawEmfFile.close();
+
+    // Replace current EMF file content with only the EMF average
+    QFile avgEmfFile(emfFile);
+    QTextStream avgEmfStream(&avgEmfFile);
+
+    if (avgEmfFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+
+        for (int i = 0; i < NUM_OF_SENSORS; i++) {
+            int x = avgEMF.at(3*i);
+            int y = avgEMF.at(3*i + 1);
+            int z = avgEMF.at(3*i + 2);
+            avgEmfStream << x << " " << y << " " << z << endl;
+            sensors[i]->m_EMF.fill(x, y, z);
+        }
+
+    }
+    else {
+        qDebug() << "ERROR: CANNOT WRITE AVERAGE EMF TO FILE";
+    }
+    avgEmfFile.close();
 
     // Update buttons status
     ui->measureEMFButton->setText("EMF Measured!");
     ui->measureEMFButton->setEnabled(false);
     ui->startStopTrialButton->setEnabled(true);
 }
+
+/* Data collection */
+void MainWindow::on_startStopTrialButton_toggled(bool checked)
+{
+    if (checked) {
+        ui->startStopTrialButton->setText("Stop");
+        beginTrial();
+
+    } else {        
+        stopTrial();
+    }
+}
+
+void MainWindow::beginTrial(){
+    // Update output file paths
+    setFilePath();
+
+    //Color the boxes
+    QString formatUtterance = QString("<font size=\"34\" color=\"red\">%1</font>")
+                              .arg(utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex()));
+    ui->utteranceBrowser->setText(formatUtterance);
+
+    // Start data recording
+    rs->setFileLocation(experiment_output_path + "_raw_sensor.txt"); // Magnetic stream
+    rs->saveToFile();
+    rs->Play();
+
+//    loca->setFileLocation(experiment_output_path + "_localization.txt");
+//    loca->Play();
+
+    audio1->stop();
+    audio2->stop();
+    audio1->setOutputLocation(QUrl::fromLocalFile(experiment_output_path + "_audio1.wav"));
+    audio2->setOutputLocation(QUrl::fromLocalFile(experiment_output_path + "_audio2.wav"));
+    audio1->record();
+    audio2->record();
+
+}
+
+void MainWindow::stopTrial(){
+
+//    loca->Stop();
+    rs->stopSavingToFile();
+    rs->Stop();
+
+    audio1->stop();
+    audio2->stop();
+
+    // Update next trial
+    bool sessionCompleted = false;
+    int classIdx = ui->classBox->currentIndex();
+    int utterIdx = ui->utteranceBox->currentIndex();
+    int trialIdx = ui->trialBox->currentIndex();
+
+    int numUtter =  ((QStringList*) utter.at(classIdx))->size();
+    int numClass = classUtter.size();
+
+    if ((utterIdx + 1) < numUtter) {
+        // Update to next utterance of current class
+        ui->utteranceBox->setCurrentIndex(utterIdx + 1);
+    }
+    else if ((classIdx + 1) < numClass) {
+        // Update to next class
+        ui->classBox->setCurrentIndex(classIdx + 1);
+    }
+    else if ((trialIdx + 1) < numTrials) {
+        // Update to next trial
+        ui->trialBox->setCurrentIndex(trialIdx + 1);
+    }
+    else {
+        // Session is over, all utterances haven been recorded
+        sessionCompleted = true;
+        ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(classIdx)->at(utterIdx) + QString("</font>"));
+    }
+
+    // Update start/stop button status based on session completion status
+    if (sessionCompleted) {
+        ui->startStopTrialButton->setText("Done!");
+        ui->startStopTrialButton->setEnabled(false);
+    }
+    else {
+        ui->startStopTrialButton->setText("Start");
+    }
+}
+
 
 /* Graph Sensor data */
 void MainWindow::on_showMagButton_toggled(bool checked)
@@ -295,8 +434,6 @@ void MainWindow::on_showMagButton_toggled(bool checked)
 void MainWindow::sensorDisplayClosed(){
     ui->showMagButton->setChecked(false);
 }
-
-
 
 
 /* Video player */
@@ -333,6 +470,7 @@ void MainWindow::on_showVideoCheckBox_clicked()
         camera->stop();
     }
 }
+
 
 /* Audio */
 void MainWindow::setAudio(){
@@ -395,86 +533,29 @@ void MainWindow::updateAudioLevels(QAudioBuffer audioBuffer) {
 //    qDebug() << "Start time: " << audioBuffer.startTime();
 //    qDebug() << "Sample type: " << audioBuffer.format().sampleType();
 
-    if (sender() == audioProbe1) {
-        ui->leftVolumeBar->setValue(0);
-    } else {
-        ui->rightVolumeBar->setValue(0);
-    }
+//    if (sender() == audioProbe1) {
+//        ui->leftVolumeBar->setValue(0);
+//    } else {
+//        ui->rightVolumeBar->setValue(0);
+//    }
 
 
 }
 
-/* Data collection */
-void MainWindow::on_startStopTrialButton_toggled(bool checked)
-{
-    if (checked) {
-        ui->startStopTrialButton->setText("Stop");       
-        beginTrial();
-
-    } else {       
-        stopTrial();
-        ui->startStopTrialButton->setText("Start");
-    }
-}
-
-void MainWindow::beginTrial(){
-    // Update output file paths
-    setFilePath();
-
-    //Color the boxes
-    QString formatUtterance = QString("<font size=\"34\" color=\"red\">%1</font>")
-                              .arg(utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex()));
-    ui->utteranceBrowser->setText(formatUtterance);
-
-    // Start data recording
-    rs->setFileLocationAndName(experiment_output_path + "_raw_sensor.txt"); // Magnetic stream
-    rs->saveToFile();
-
-    audio1->stop();
-    audio2->stop();
-    audio1->setOutputLocation(QUrl::fromLocalFile(experiment_output_path + "_audio1.wav"));
-    audio2->setOutputLocation(QUrl::fromLocalFile(experiment_output_path + "_audio2.wav"));
-    audio1->record();
-    audio2->record();
-
-    //    video->setVideoName(experiment_output_path + "_video.avi");             // Video stream
-
-//    lt->setFileLocationAndName(experiment_output_path + "_localization.txt");  // Tongue Trajectory
-//    lt->setSensorFile(experiment_output_path + "_raw_sensor.txt");
-
-    // Post processing files
-//    ps->setReferenceFile(reference_input_path + "_localization.txt");
-//    ps->setExperimentalFile(experiment_output_path + "_localization.txt");
-
-
-    // Begin Recording data
-//    key_start = QDateTime::currentDateTime().toMSecsSinceEpoch();
-//    audio1->beginSavingAudio();
-//    audio2->beginSavingAudio();
-//    video->startVideo();
-
-
-//    lt->saveToFile();
-
-}
-
-void MainWindow::stopTrial(){
-
-    rs->stopSavingToFile();
-
-    audio1->stop();
-    audio2->stop();
-
-}
 
 /* Manage Drop-down lists */
+void MainWindow::on_trialBox_currentIndexChanged(int index)
+{
+    // Reset class box
+    ui->classBox->setCurrentIndex(0);
+}
+
 void MainWindow::on_classBox_currentIndexChanged(int index)
 {
     disconnect(ui->utteranceBox, SIGNAL(currentIndexChanged(int)), this, SLOT(on_utteranceBox_currentIndexChanged(int)));
 
     // Clear utterance and trial drop-down list
     ui->utteranceBox->clear();
-    ui->trialBox->clear();
 
     // Populate list of utterances for this class
     for(int j = 0; j < utter.at(index)->size(); j++)
@@ -483,30 +564,22 @@ void MainWindow::on_classBox_currentIndexChanged(int index)
         ui->utteranceBox->addItem(formatUtter);
     }
 
-    // Populate list of trial numbers for this class
-    for (int i = 0; i < numTrials.at(index); i++)
-    {
-        ui->trialBox->addItem(QString::number(i+1) + " / " + QString::number(numTrials.at(index)));
-    }
 
-    // Update utterrance display
-    ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(ui->classBox->currentIndex())->at(0) + QString("</font>"));
+    connect(ui->utteranceBox, SIGNAL(currentIndexChanged(int)), this, SLOT(on_utteranceBox_currentIndexChanged(int)));
 
     // Reset drop-down list to first item
     ui->utteranceBox->setCurrentIndex(0);
-    ui->trialBox->setCurrentIndex(0);
-
-    connect(ui->utteranceBox, SIGNAL(currentIndexChanged(int)), this, SLOT(on_utteranceBox_currentIndexChanged(int)));
 }
 
 void MainWindow::on_utteranceBox_currentIndexChanged(int index)
 {
-    ui->trialBox->setCurrentIndex(0);
     ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(ui->classBox->currentIndex())->at(index) + QString("</font>"));
 
-//    // Update saving paths
-//    setFilePath();
+    // Enable Start/Stop button if session was completed
+    ui->startStopTrialButton->setEnabled(true);
+    ui->startStopTrialButton->setText("Start");
 }
+
 
 
 /* ********************************************************* *
@@ -522,11 +595,11 @@ void MainWindow::setFilePath()
     experiment_utter.truncate(40);
     experiment_utter = experiment_utter.trimmed();
 
-    exp_count_p = ui->trialBox->currentIndex() + 1;
+    int trial = ui->trialBox->currentIndex() + 1;
 
     experiment_output_path = experiment_root + "/" + experiment_class + "/" + experiment_utter + "/" +
-            experiment_utter + "_" + QString::number(exp_count_p) + "/" + experiment_utter + "_" +
-            QString::number(exp_count_p);
+            experiment_utter + "_" + QString::number(trial) + "/" + experiment_utter + "_" +
+            QString::number(trial);
 }
 
 CImg<double> MainWindow::loadVector(string myString)
@@ -563,22 +636,50 @@ CImg<double> MainWindow::loadMatrix(string myString)
 }
 
 
-
 /* Closing methods */
 void MainWindow::closeEvent(QCloseEvent *event){
-    audio1->stop();
-    audio2->stop();
+
+    // Terminate Read sensor
+    if (rs) {
+        rs->stopSavingToFile();
+        rs->Stop();
+    }
+
+    // Terminate Localization (if applicable)
+    if (loca) {
+        loca->stopSavingToFile();
+        loca->Stop();
+    }
+
+    // Terminate audio
+    if (audio1) {
+        audio1->stop();
+    }
+
+    if (audio2) {
+       audio2->stop();
+    }
+
+    // Close Display sensor UI
+    if (sensorUi) {
+        sensorUi->close();
+    }
+
+    // Closing procedures
     event->accept();
 }
 
 MainWindow::~MainWindow()
 {
-    delete ui;
     delete camera;
+    delete rs;
+    delete loca;
+    delete audio1;
+    delete audio2;
+    delete audioProbe1;
+    delete audioProbe2;
+    delete audioTimer;
+    delete sensorUi;
+    delete ui;
 }
-
-
-
-
-
 

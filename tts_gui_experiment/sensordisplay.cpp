@@ -7,7 +7,6 @@ SensorDisplay::SensorDisplay(QWidget *parent, ReadSensors *readSensor) :
     QDialog(parent),
     ui(new Ui::SensorDisplay)
 {
-
     this->rs = readSensor;
 
     ui->setupUi(this);
@@ -40,23 +39,29 @@ SensorDisplay::SensorDisplay(QWidget *parent, ReadSensors *readSensor) :
     rs->Play();
 
     magTimer = new QTimer(this);
-    magTimer->start(10);
+    magTimer->start(50);
 
-    connect(magTimer, SIGNAL(timeout()), this, SLOT(updateMagPlot()));
+    connect(rs, SIGNAL(newPacketAvail(MagData *)), this, SLOT(updateMagPlot(MagData *)));
+    connect(magTimer, SIGNAL(timeout()), ui->magPlot, SLOT(replot()));
 }
 
-void SensorDisplay::updateMagPlot() {
+void SensorDisplay::updateMagPlot(MagData *data) {
 
     for (int i = 0; i < NUM_OF_SENSORS; i++)
     {
-        int row = i / NUM_OF_SENSORS_PER_BOARD;
-        int col = i % NUM_OF_SENSORS_PER_BOARD;
+//        int row = i / NUM_OF_SENSORS_PER_BOARD;
+//        int col = i % NUM_OF_SENSORS_PER_BOARD;
 
         // x axis data for real time update
+
         double time = QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000.0;
-        double x = rs->getSensorData(row, col, 0);
-        double y = rs->getSensorData(row, col, 1);
-        double z = rs->getSensorData(row, col, 2);
+//        double x = rs->getSensorData(row, col, 0);
+//        double y = rs->getSensorData(row, col, 1);
+//        double z = rs->getSensorData(row, col, 2);
+
+        int x = data->at(i*3);
+        int y = data->at(i*3 + 1);
+        int z = data->at(i*3 + 2);
 
         // add data to lines:
         plots[i].graphX->addData(time, x);
@@ -99,10 +104,14 @@ void SensorDisplay::updateMagPlot() {
 //        plots[i].key = time;
     }
 
-    ui->magPlot->replot();
+
 }
 
 void SensorDisplay::closeEvent(QCloseEvent *event) {
+    rs->Stop();
+    magTimer->stop();
+    disconnect(magTimer, SIGNAL(timeout()), ui->magPlot, SLOT(replot()));
+    disconnect(rs, SIGNAL(newPacketAvail(MagData *)), this, SLOT(updateMagPlot(MagData *)));
     emit closed();
     event->accept();
 }
@@ -110,4 +119,5 @@ void SensorDisplay::closeEvent(QCloseEvent *event) {
 SensorDisplay::~SensorDisplay()
 {
     delete ui;
+    delete magTimer;
 }

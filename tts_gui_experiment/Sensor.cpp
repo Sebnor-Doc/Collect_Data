@@ -22,7 +22,8 @@ Sensor::Sensor() {
     this->m_angles.assign(1,3).fill(0);
     this->m_currentField.assign(1,3).fill(0);
     this->m_extrapField.assign(1,3).fill(0);
-//    x=0;y=0;z=0;
+
+    v_currentField.fill(0,3);
 }
 
 
@@ -92,13 +93,19 @@ void Sensor::offset(CImg<double> offset) {
 }
 
 // Current Field
-cimg_library::CImg<double> Sensor::currentField()
+cimg_library::CImg<int> Sensor::currentField()
 {
     return this->m_currentField;
 }
 
 void Sensor::currentField(int x, int y, int z){
-    this->m_currentField.fill(x,y,z);
+    qDebug() << "x: " << x << "\ty: " << y << "\tz: " << z;
+    v_currentField[0] = x;
+    v_currentField[1] = y;
+    v_currentField[2] = z;
+
+//    this->m_currentField.fill(x,y,z);
+    qDebug() << "current field DONE";
 }
 
 // Angles

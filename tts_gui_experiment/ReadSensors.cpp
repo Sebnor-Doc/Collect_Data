@@ -1,9 +1,10 @@
 #include "ReadSensors.h"
-#include "common.h"
 #include <time.h>
 #include <QUrl>
 #include <QDebug>
 #include <QDateTime>
+
+#include <QSerialPortInfo>
 
 
 ReadSensors::ReadSensors(QObject *parent)
@@ -11,6 +12,26 @@ ReadSensors::ReadSensors(QObject *parent)
 {
     stop = true;
     save = false;
+
+    // Connect to Mojo by identifying its COM Port
+    QSerialPortInfo mojoComPort;
+    QList<QSerialPortInfo> listOfPorts = QSerialPortInfo::availablePorts();
+
+    foreach(QSerialPortInfo port, listOfPorts) {
+        if (port.productIdentifier() == 32769) {
+            mojoComPort = port;
+            break;
+        }
+    }
+
+    // Set Mojo Serial Port
+    if (!mojoComPort.portName().isEmpty()) {
+        qDebug() << "Mojo Com Port found at: " << mojoComPort.portName();
+        setCOMPort(mojoComPort.portName());
+    }
+    else {
+        qDebug() << "ERROR: NO COM PORT ASSOCIATED TO MOJO IS FOUND!!";
+    }
 }
 
 
@@ -28,72 +49,49 @@ void ReadSensors::run()
 {
     if (!checkCOMPorts()) {
         stop = true;
-        throw std::runtime_error("Verify if system is Low/High Density");
+        qDebug() << "ERROR: CHECK COM PORT FAILED";
+        throw std::runtime_error("");
     }
 
-    while (!stop)
-    {
+    qRegisterMetaType<MagData*>("MagData*");
+    connect(sp, SIGNAL(newPacket(MagData*)), this, SLOT(processPacket(MagData*)));
+
+    while (!stop) {
         mutex.lock();
-
         sp->getSinglePacket();
-
-        //Save raw magnetic information
-        if (save)
-        {
-            for (int i=0; i < NUM_OF_SENSORS; i++)
-            {
-                (*sensorOutputFile_stream) <<sp->getSensorData(i/NUM_OF_SENSORS_PER_BOARD, i%NUM_OF_SENSORS_PER_BOARD, 0)<<" "
-                                           <<sp->getSensorData(i/NUM_OF_SENSORS_PER_BOARD, i%NUM_OF_SENSORS_PER_BOARD, 1)<<" "
-                                           <<sp->getSensorData(i/NUM_OF_SENSORS_PER_BOARD, i%NUM_OF_SENSORS_PER_BOARD, 2)<<" ";
-            }
-            (*sensorOutputFile_stream)<<QDateTime::currentDateTime().toMSecsSinceEpoch()<<endl;
-
-        }
         mutex.unlock();
-
     }
+
+    disconnect(sp, SIGNAL(newPacket(MagData*)), this, SLOT(processPacket(MagData*)));
 }
 
-bool ReadSensors::checkCOMPorts()
-{
+
+void ReadSensors::processPacket(MagData *packet) {
     mutex.lock();
-    sp->getSinglePacket();
-    if (sp->rawData.size() == EXPECTEDBYTES-NOOFBYTESINPC)
+    // Save raw magnetic information
+    if (save)
     {
-        qDebug()<<"CONNECTED TO FPGA SUCCESSFULLY!"<<endl;
-        mutex.unlock();
-        return true;
+        for (int i = 0; i < packet->size(); i++) {
+            (*sensorOutputFile_stream) << packet->at(i) << " ";
+        }
+
+        (*sensorOutputFile_stream) << QDateTime::currentDateTime().toMSecsSinceEpoch() << endl;
     }
-    else
-    {
-        qDebug()<<"COULD NOT CONNECT TO FPGA ON "<<source<<"!"<<endl;
-        mutex.unlock();
-        return false;
-    }
+
+    emit newPacketAvail(packet);
+    mutex.unlock();
 }
 
-void ReadSensors::setCOMPort(QString source)
+
+short ReadSensors::getSensorData(int pcb, int sensor, int dim)
 {
-    this->source = source;
-    try
-    {
-        sp = new MOJOSerialPort(source.toStdString());
-        qDebug() << "Mojo connected successfully!" << endl;
-        sp->getSinglePacket();
-    }
-    catch(...)
-    {
-        qDebug()<<"Mojo port " << source << " cannot be found.\nPlease check connection to mojo." << endl;
-    }
+    return sp->getSensorData(pcb, sensor, dim);
 }
 
+/* Manage thread status */
 void ReadSensors::Stop()
 {
     stop = true;
-}
-
-void ReadSensors::msleep(int ms){
-    QThread::msleep(ms);
 }
 
 bool ReadSensors::isStopped() const{
@@ -106,17 +104,8 @@ void ReadSensors::beginRecording()
 
 }
 
-void ReadSensors::endRecording()
-{
-    stop = true;
-}
-
-short ReadSensors::getSensorData(int pcb, int sensor, int dim)
-{
-    return sp->getSensorData(pcb, sensor, dim);
-}
-
-void ReadSensors::setFileLocationAndName(QString filename)
+/* Manage Saving */
+void ReadSensors::setFileLocation(QString filename)
 {
     this->filename = filename;
 }
@@ -139,6 +128,42 @@ void ReadSensors::stopSavingToFile()
     mutex.unlock();
 }
 
+
+/* Manage connection to Mojo */
+void ReadSensors::setCOMPort(QString source)
+{
+    this->source = source;
+    try
+    {
+        sp = new MOJOSerialPort(source.toStdString());
+        qDebug() << "Mojo connected successfully!";
+        sp->getSinglePacket();
+    }
+    catch(...)
+    {
+        qDebug()<<"ERROR: MOJO PORT FOUND BUT CANNOT CONNECT: " << source;
+    }
+}
+
+bool ReadSensors::checkCOMPorts()
+{
+    mutex.lock();
+    sp->getSinglePacket();
+//    if (sp->rawData.size() == EXPECTEDBYTES-NOOFBYTESINPC)
+    if (sp->rawData.size() == (3*NUM_OF_SENSORS))
+    {
+        mutex.unlock();
+        return true;
+    }
+    else
+    {
+        qDebug()<<"ERROR: PACKET SIZE RECEIVED FROM MOJO IS INCORRECT" << endl;
+        mutex.unlock();
+        return false;
+    }
+}
+
+/* Other */
 ReadSensors::~ReadSensors()
 {
     mutex.lock();

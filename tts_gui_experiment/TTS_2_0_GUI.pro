@@ -19,7 +19,9 @@ SOURCES += main.cpp\
     Magnet.cpp \
     Sensor.cpp \
     ReadSensors.cpp \
-    sensordisplay.cpp
+    sensordisplay.cpp \
+    Localization.cpp \
+    asa047.cpp
 
 HEADERS  += TTS_GUI.h \
     qcustomplot.h \
@@ -31,7 +33,9 @@ HEADERS  += TTS_GUI.h \
     Magnet.h \
     Sensor.h \
     ReadSensors.h \
-    sensordisplay.h
+    sensordisplay.h \
+    Localization.h \
+    asa047.hpp
 
 FORMS    += \
     TTS_GUI.ui \

@@ -3,6 +3,7 @@
 
 #include "mojoserialport.h"
 #include "Sensor.h"
+#include "common.h"
 #include "CImg.h"
 
 #include <QFile>
@@ -11,51 +12,55 @@
 #include <QThread>
 #include <QTextStream>
 
+#include <QVector>
 
 class ReadSensors: public QThread
 {    Q_OBJECT
 
- private:
-    bool stop;
+private:
     QWaitCondition condition;
-    bool readSensors;
     QMutex mutex;
-    cimg_library::CImg<double> currentField;
+
+    bool stop;
+    bool save;
+
     MOJOSerialPort *sp;
     QString source;
-    bool save;    
+
+    QString filename;
     QFile sensorOutputFile;
     QTextStream *sensorOutputFile_stream;
 
+
 protected:
      void run();
-     void msleep(int ms);
 
- public:
-    QString filename;
+signals:
+   void newPacketAvail(MagData *packet);
 
+private slots:
+    void processPacket(MagData *packet);
+
+public:
     ReadSensors(QObject *parent = 0);
     ~ReadSensors();
 
-    void Play();            // Run the webcam
-    void Stop();            // Stop
+    void Play();
+    void Stop();
 
-    bool isStopped() const; // Check if the ReadSensors has been stopped
-    void beginRecording();  // Begin Recording
-    void endRecording();    // End Recording
+    void beginRecording();
 
-    cimg_library::CImg<double> getCurrentField();   // Get Current field
+    short getSensorData(int pcb, int sensor, int dim);
 
-    bool checkCOMPorts();   // Check if COM Port is correctly outputting data
-    void setCOMPort(QString source);    // Set Source (COM Port)
+    void setFileLocation(QString filename);
+    void saveToFile();
+    void stopSavingToFile();
 
-    short getSensorData(int pcb, int sensor, int dim); // Send specific sensor data
 
-    void setFileLocationAndName(QString filename); // Set save location
-
-    void saveToFile();  // Save to file
-
-    void stopSavingToFile();    // Stop saving to file
+private:
+    bool isStopped() const;
+    void setCOMPort(QString source);
+    bool checkCOMPorts();
 
 };
 #endif // ReadSensors_H

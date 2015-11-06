@@ -44,7 +44,7 @@ private:
 
 
 public slots:
-    void updateMagPlot();
+    void updateMagPlot(MagData *data);
     void closeEvent(QCloseEvent *event);
 
 signals:
