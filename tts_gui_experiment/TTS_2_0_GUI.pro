@@ -5,7 +5,7 @@
 #-------------------------------------------------
 
 QT      += core gui printsupport widgets serialport multimedia multimediawidgets
-CONFIG  += console
+CONFIG  += console static
 
 TARGET = TTS_NEU
 TEMPLATE = app
@@ -43,12 +43,19 @@ FORMS    += \
 
 LIBS += -lAdvapi32 -lgdi32 -luser32 -lshell32
 
-INCLUDEPATH += "C:/dev/boost_1_57_0-0"
-INCLUDEPATH += "C:/dev/opencv/build/include"
+#INCLUDEPATH += "C:/dev/boost_1_57_0-0"  # Needed for the boost/... includes
+INCLUDEPATH += "C:/dev/boost_1_59_0"  # Needed for the boost/... includes
+#INCLUDEPATH += "C:/dev/opencv/build/include"
 
-INCLUDEPATH += $$PWD/../../../../../../dev/boost_1_57_0-0/lib64-msvc-12.0
-DEPENDPATH += $$PWD/../../../../../../dev/boost_1_57_0-0/lib64-msvc-12.0
+#DEPENDPATH  += "C:/dev/boost_1_57_0-0/lib64-msvc-12.0"
+DEPENDPATH  += "C:/dev/boost_1_59_0/stage/lib"
 
-unix|win32: LIBS += -L$$PWD/../../../../../../dev/boost_1_57_0-0/lib64-msvc-12.0/ -lboost_system-vc120-mt-gd-1_57
-unix|win32: LIBS += -L$$PWD/../../../../../../dev/boost_1_57_0-0/lib64-msvc-12.0/ -lboost_regex-vc120-mt-gd-1_57
+#LIBS += -lboost_system-vc120-mt-gd-1_57
+#LIBS += -lboost_regex-vc120-mt-gd-1_57
+LIBS += -LC:/dev/boost_1_59_0/stage/lib
+#LIBS += -LC:/dev/boost_1_57_0-0/lib64-msvc-12.0
+
+
+#unix|win32: LIBS += -L$$PWD/../../../../../../dev/boost_1_57_0-0/lib64-msvc-12.0/ -lboost_system-vc120-mt-gd-1_57
+#unix|win32: LIBS += -L$$PWD/../../../../../../dev/boost_1_57_0-0/lib64-msvc-12.0/ -lboost_regex-vc120-mt-gd-1_57
 
