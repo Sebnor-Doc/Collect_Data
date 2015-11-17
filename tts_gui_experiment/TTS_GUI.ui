@@ -404,15 +404,21 @@ p, li { white-space: pre-wrap; }
       <item>
        <layout class="QVBoxLayout" name="videoLay" stretch="3,1">
         <item>
-         <widget class="QLabel" name="video_label">
+         <widget class="QLabel" name="videoFeed">
           <property name="autoFillBackground">
            <bool>false</bool>
           </property>
           <property name="styleSheet">
            <string notr="true">Background-color: #000;</string>
           </property>
+          <property name="frameShape">
+           <enum>QFrame::Box</enum>
+          </property>
           <property name="text">
            <string/>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
           </property>
          </widget>
         </item>

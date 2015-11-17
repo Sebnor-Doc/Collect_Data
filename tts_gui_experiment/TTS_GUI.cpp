@@ -35,10 +35,9 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     // Connect to Mojo
     rs = new ReadSensors();
 
-    // Initialize Media
-    setCamera();
+    // Intialize multimedia
+    video = new VideoThread();
     setAudio();
-
 }
 
 
@@ -352,6 +351,9 @@ void MainWindow::beginTrial(){
     rs->saveToFile();
     rs->Play();
 
+    video->setVideoName(experiment_output_path + "_video.avi");
+    video->startSavingVideo();
+
 //    loca->setFileLocation(experiment_output_path + "_localization.txt");
 //    loca->Play();
 
@@ -369,6 +371,8 @@ void MainWindow::stopTrial(){
 //    loca->Stop();
     rs->stopSavingToFile();
     rs->Stop();
+
+    video->stopSavingVideo();
 
     audio1->stop();
     audio2->stop();
@@ -437,37 +441,19 @@ void MainWindow::sensorDisplayClosed(){
 
 
 /* Video player */
-void MainWindow::setCamera(){
-    // Find LifeCam webcam and assign it to "camera" variable
-    QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
-
-    foreach (const QCameraInfo &cameraInfo, cameras) {
-
-        if (cameraInfo.description().contains("LifeCam")) {
-            camera = new QCamera(cameraInfo);
-            qDebug() << "LifeCam connected!";
-            break;
-        }
-    }
-
-    // Show debug message if camera cannot be found
-    if (!camera) {
-        QString errorMsg = "LifeCam camera cannot be found";
-        qDebug() << errorMsg << endl;
-    }
-
-    camera->setCaptureMode(QCamera::CaptureVideo);
-}
 
 void MainWindow::on_showVideoCheckBox_clicked()
 {
     if (ui->showVideoCheckBox->isChecked())
     {
-        camera->start();
+        video->Play();
+        video->beginEmittingVideo();
+        connect(video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)) );
     }
     else
     {
-        camera->stop();
+        video->Stop();
+        disconnect(video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)) );
     }
 }
 
@@ -671,7 +657,6 @@ void MainWindow::closeEvent(QCloseEvent *event){
 
 MainWindow::~MainWindow()
 {
-    delete camera;
     delete rs;
     delete loca;
     delete audio1;

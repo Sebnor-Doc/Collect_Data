@@ -9,6 +9,7 @@
 #include "common.h"
 #include "sensordisplay.h"
 #include "Localization.h"
+#include "videothread.h"
 
 #include <string>
 #include <vector>
@@ -43,6 +44,7 @@ private:
     Magnet magnet;
     QVector<Sensor*> sensors;
     ReadSensors *rs;
+    VideoThread *video;
     Localization *loca;
 
     // Audio
@@ -52,8 +54,6 @@ private:
     QAudioProbe *audioProbe2;
     QTimer *audioTimer;
 
-    // Camera
-    QCamera *camera;
 
     // Utterances
     QList<QString> classUtter;
@@ -99,7 +99,6 @@ private:
     void loadCalibration(QString calibFilename);
     void setupExperiment();
     void loadExperimentFile(QString experimentFile);
-    void setCamera();
     void setAudio();
     void beginTrial();
     void stopTrial();
