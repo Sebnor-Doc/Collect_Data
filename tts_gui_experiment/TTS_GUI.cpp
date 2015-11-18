@@ -25,6 +25,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
 {   
     //Display GUI
     ui->setupUi(this);
+    this->setWindowState(Qt::WindowMaximized);
 
     loadConfig();
 
