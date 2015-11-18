@@ -45,6 +45,9 @@ FORMS    += \
 
 LIBS += -lAdvapi32 -lgdi32 -luser32 -lshell32
 
+RESOURCES += \
+    icons.qrc
+
 # Boost Libraries
 INCLUDEPATH += "C:/dev/Boost/boost_1_59_0"  # Needed for the boost/... includes
 DEPENDPATH  += "C:/dev/Boost/boost_1_59_0/stage/lib"
@@ -72,13 +75,5 @@ LIBS += -L"C:/dev/OpenCV/OpenCV_3.0_Installer/Build_Shared_32_bit/lib/Release" \
             -lopencv_calib3d300     \
             -lopencv_core300        \
             -lopencv_features2d300
-
-
-
-
-
-
-
-
 
 

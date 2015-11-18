@@ -254,6 +254,29 @@
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QPushButton" name="showMagButton">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Show
+Sensors</string>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>16</width>
+           <height>16</height>
+          </size>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
@@ -387,7 +410,7 @@ p, li { white-space: pre-wrap; }
      </spacer>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="otherSensorLayout" stretch="2,1,1">
+     <layout class="QHBoxLayout" name="otherSensorLayout" stretch="2,1">
       <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
@@ -400,41 +423,6 @@ p, li { white-space: pre-wrap; }
          </size>
         </property>
        </spacer>
-      </item>
-      <item>
-       <layout class="QVBoxLayout" name="videoLay" stretch="3,1">
-        <item>
-         <widget class="QLabel" name="videoFeed">
-          <property name="autoFillBackground">
-           <bool>false</bool>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">Background-color: #000;</string>
-          </property>
-          <property name="frameShape">
-           <enum>QFrame::Box</enum>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="showVideoCheckBox">
-          <property name="font">
-           <font>
-            <pointsize>20</pointsize>
-           </font>
-          </property>
-          <property name="text">
-           <string>Show Video</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
       </item>
       <item>
        <layout class="QHBoxLayout" name="volumeHLay">
@@ -459,26 +447,39 @@ p, li { white-space: pre-wrap; }
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="showMagButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>Show Sensors</string>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>16</width>
-            <height>16</height>
-           </size>
-          </property>
-          <property name="checkable">
-           <bool>true</bool>
-          </property>
-         </widget>
+         <layout class="QVBoxLayout" name="videoLay" stretch="3,1">
+          <item>
+           <widget class="QLabel" name="videoFeed">
+            <property name="autoFillBackground">
+             <bool>false</bool>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">Background-color: #000;</string>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::Box</enum>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="showVideoCheckBox">
+            <property name="font">
+             <font>
+              <pointsize>20</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Show Video</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </item>

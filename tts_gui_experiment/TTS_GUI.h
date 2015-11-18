@@ -52,7 +52,6 @@ private:
     QAudioRecorder *audio2;
     QAudioProbe *audioProbe1;
     QAudioProbe *audioProbe2;
-    QTimer *audioTimer;
 
 
     // Utterances
