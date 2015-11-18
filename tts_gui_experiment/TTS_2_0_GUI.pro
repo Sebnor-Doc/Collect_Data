@@ -21,7 +21,8 @@ SOURCES += main.cpp\
     ReadSensors.cpp \
     sensordisplay.cpp \
     Localization.cpp \
-    asa047.cpp
+    asa047.cpp \
+    videothread.cpp
 
 HEADERS  += TTS_GUI.h \
     qcustomplot.h \
@@ -35,7 +36,8 @@ HEADERS  += TTS_GUI.h \
     ReadSensors.h \
     sensordisplay.h \
     Localization.h \
-    asa047.hpp
+    asa047.hpp \
+    videothread.h
 
 FORMS    += \
     TTS_GUI.ui \
@@ -43,24 +45,35 @@ FORMS    += \
 
 LIBS += -lAdvapi32 -lgdi32 -luser32 -lshell32
 
+RESOURCES += \
+    icons.qrc
+
 # Boost Libraries
 INCLUDEPATH += "C:/dev/Boost/boost_1_59_0"  # Needed for the boost/... includes
 DEPENDPATH  += "C:/dev/Boost/boost_1_59_0/stage/lib"
 LIBS += -LC:/dev/Boost/boost_1_59_0/stage/lib
-#unix|win32: LIBS += -L$$PWD/../../../../../../dev/boost_1_57_0-0/lib64-msvc-12.0/ -lboost_system-vc120-mt-gd-1_57
-#unix|win32: LIBS += -L$$PWD/../../../../../../dev/boost_1_57_0-0/lib64-msvc-12.0/ -lboost_regex-vc120-mt-gd-1_57
 
 # OPEN CV
-INCLUDEPATH += "C:/dev/OpenCV/opencv_0/Source/build/include"
-DEPENDPATH  += "C:/dev/OpenCV/opencv_0/Source/build/x86/vc12/staticlib"
-LIBS += -LC:/dev/OpenCV/opencv_0/Source/build/x86/vc12/staticlib
+INCLUDEPATH += "C:/dev/OpenCV/OpenCV_3.0_Installer/opencv/build/include"
 
-
-
-
-
-
-
-
+LIBS += -L"C:/dev/OpenCV/OpenCV_3.0_Installer/Build_Shared_32_bit/lib/Release" \
+            -lopencv_flann300       \
+            -lopencv_hal300         \
+            -lopencv_highgui300     \
+            -lopencv_imgcodecs300   \
+            -lopencv_imgproc300     \
+            -lopencv_ml300          \
+            -lopencv_objdetect300   \
+            -lopencv_photo300       \
+            -lopencv_shape300       \
+            -lopencv_stitching300   \
+            -lopencv_superres300    \
+            -lopencv_ts300          \
+            -lopencv_video300       \
+            -lopencv_videoio300     \
+            -lopencv_videostab300   \
+            -lopencv_calib3d300     \
+            -lopencv_core300        \
+            -lopencv_features2d300
 
 

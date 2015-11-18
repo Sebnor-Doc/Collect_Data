@@ -35,10 +35,17 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     // Connect to Mojo
     rs = new ReadSensors();
 
-    // Initialize Media
-    setCamera();
+    // Intialize video
+    video = new VideoThread();
+    connect(video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)) );
+
+    // Initialize Audio
     setAudio();
 
+    // Start video
+    video->Play();
+    ui->showVideoCheckBox->setChecked(true);
+    on_showVideoCheckBox_clicked();
 }
 
 
@@ -352,6 +359,9 @@ void MainWindow::beginTrial(){
     rs->saveToFile();
     rs->Play();
 
+    video->setVideoName(experiment_output_path + "_video.avi");
+    video->startSavingVideo();
+
 //    loca->setFileLocation(experiment_output_path + "_localization.txt");
 //    loca->Play();
 
@@ -369,6 +379,8 @@ void MainWindow::stopTrial(){
 //    loca->Stop();
     rs->stopSavingToFile();
     rs->Stop();
+
+    video->stopSavingVideo();
 
     audio1->stop();
     audio2->stop();
@@ -437,37 +449,13 @@ void MainWindow::sensorDisplayClosed(){
 
 
 /* Video player */
-void MainWindow::setCamera(){
-    // Find LifeCam webcam and assign it to "camera" variable
-    QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
-
-    foreach (const QCameraInfo &cameraInfo, cameras) {
-
-        if (cameraInfo.description().contains("LifeCam")) {
-            camera = new QCamera(cameraInfo);
-            qDebug() << "LifeCam connected!";
-            break;
-        }
-    }
-
-    // Show debug message if camera cannot be found
-    if (!camera) {
-        QString errorMsg = "LifeCam camera cannot be found";
-        qDebug() << errorMsg << endl;
-    }
-
-    camera->setCaptureMode(QCamera::CaptureVideo);
-}
-
 void MainWindow::on_showVideoCheckBox_clicked()
 {
-    if (ui->showVideoCheckBox->isChecked())
-    {
-        camera->start();
+    if (ui->showVideoCheckBox->isChecked()) {
+        video->startEmittingVideo();
     }
-    else
-    {
-        camera->stop();
+    else {
+        video->stopEmittingVideo();
     }
 }
 
@@ -643,26 +631,43 @@ void MainWindow::closeEvent(QCloseEvent *event){
     if (rs) {
         rs->stopSavingToFile();
         rs->Stop();
+        delete rs;
     }
 
+    if (video){
+        video->Stop();
+        delete video;
+    }
     // Terminate Localization (if applicable)
     if (loca) {
         loca->stopSavingToFile();
         loca->Stop();
+        delete loca;
     }
 
     // Terminate audio
     if (audio1) {
         audio1->stop();
+        delete audio1;
+    }
+
+    if (audioProbe1) {
+        delete audioProbe1;
     }
 
     if (audio2) {
        audio2->stop();
+       delete audio2;
+    }
+
+    if (audioProbe2) {
+        delete audioProbe2;
     }
 
     // Close Display sensor UI
     if (sensorUi) {
         sensorUi->close();
+        delete sensorUi;
     }
 
     // Closing procedures
@@ -671,15 +676,6 @@ void MainWindow::closeEvent(QCloseEvent *event){
 
 MainWindow::~MainWindow()
 {
-    delete camera;
-    delete rs;
-    delete loca;
-    delete audio1;
-    delete audio2;
-    delete audioProbe1;
-    delete audioProbe2;
-    delete audioTimer;
-    delete sensorUi;
     delete ui;
 }
 
