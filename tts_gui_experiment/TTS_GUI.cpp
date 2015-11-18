@@ -35,9 +35,17 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     // Connect to Mojo
     rs = new ReadSensors();
 
-    // Intialize multimedia
+    // Intialize video
     video = new VideoThread();
+    connect(video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)) );
+
+    // Initialize Audio
     setAudio();
+
+    // Start video
+    video->Play();
+    ui->showVideoCheckBox->setChecked(true);
+    on_showVideoCheckBox_clicked();
 }
 
 
@@ -441,19 +449,13 @@ void MainWindow::sensorDisplayClosed(){
 
 
 /* Video player */
-
 void MainWindow::on_showVideoCheckBox_clicked()
 {
-    if (ui->showVideoCheckBox->isChecked())
-    {
-        video->Play();
-        video->beginEmittingVideo();
-        connect(video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)) );
+    if (ui->showVideoCheckBox->isChecked()) {
+        video->startEmittingVideo();
     }
-    else
-    {
-        video->Stop();
-        disconnect(video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)) );
+    else {
+        video->stopEmittingVideo();
     }
 }
 
@@ -629,26 +631,43 @@ void MainWindow::closeEvent(QCloseEvent *event){
     if (rs) {
         rs->stopSavingToFile();
         rs->Stop();
+        delete rs;
     }
 
+    if (video){
+        video->Stop();
+        delete video;
+    }
     // Terminate Localization (if applicable)
     if (loca) {
         loca->stopSavingToFile();
         loca->Stop();
+        delete loca;
     }
 
     // Terminate audio
     if (audio1) {
         audio1->stop();
+        delete audio1;
+    }
+
+    if (audioProbe1) {
+        delete audioProbe1;
     }
 
     if (audio2) {
        audio2->stop();
+       delete audio2;
+    }
+
+    if (audioProbe2) {
+        delete audioProbe2;
     }
 
     // Close Display sensor UI
     if (sensorUi) {
         sensorUi->close();
+        delete sensorUi;
     }
 
     // Closing procedures
@@ -657,14 +676,6 @@ void MainWindow::closeEvent(QCloseEvent *event){
 
 MainWindow::~MainWindow()
 {
-    delete rs;
-    delete loca;
-    delete audio1;
-    delete audio2;
-    delete audioProbe1;
-    delete audioProbe2;
-    delete audioTimer;
-    delete sensorUi;
     delete ui;
 }
 

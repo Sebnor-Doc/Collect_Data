@@ -1,21 +1,16 @@
 #include "VideoThread.h"
-#include <QDateTime>
-#include <time.h>
-#include <QUrl>
 #include <QCameraInfo>
 #include <QPixmap>
 
 
-VideoThread::VideoThread(QObject *parent)
-    : QThread(parent)
+VideoThread::VideoThread(QObject *parent): QThread(parent)
 {
     stop = true;
     saveVideo = false;
     showVideo = false;
 }
 
-
-// Start video recording
+// Start thread
 void VideoThread::Play()
 {
     if (!isRunning()) {
@@ -46,6 +41,7 @@ void VideoThread::setCamera()
     int cameraIdx = -1;
 
     for (int i = 0; i < cameras.size(); i++) {
+
         if (cameras.at(i).description().contains("LifeCam")) {
             cameraIdx = i;
             break;
@@ -66,46 +62,44 @@ void VideoThread::setCamera()
     }
 }
 
-void VideoThread::setVideoName(QString filename)
-{
-    this->filename = filename;
-}
 
+// Display and/or save video data
 void VideoThread::processVideo()
 {
     bool readSuccessful = camera.read(videoMat);
-    cv::Mat origVideoMat = videoMat.clone();
 
     if (!readSuccessful || videoMat.empty()) {          // if we did not get a frame
         qDebug() << "ERROR: CANNOT READ VIDEO IMAGES";
+        return;
     }
-    cv::cvtColor(videoMat, videoMat, CV_BGR2RGB);       // invert BGR to RGB
-    videoImg = QImage((uchar*)videoMat.data, videoMat.cols, videoMat.rows, videoMat.step, QImage::Format_RGB888);
+
+    cv::Mat origVideoMat = videoMat.clone();
 
     if (showVideo) {
+        cv::cvtColor(videoMat, videoMat, CV_BGR2RGB);       // invert BGR to RGB
+        videoImg = QImage((uchar*)videoMat.data, videoMat.cols, videoMat.rows, videoMat.step, QImage::Format_RGB888);
+
         emit processedImage(QPixmap::fromImage(videoImg));
     }
 
     if (saveVideo)
     {
-        tempVid->push_back(origVideoMat.clone());
+        video->write(origVideoMat);
     }
 }
 
 
-// Save video
-void VideoThread::Stop()
+// Save video data into .avi file
+void VideoThread::setVideoName(QString filename)
 {
-    stop = true;
-    camera.release();
+    this->filename = filename;
 }
 
 void VideoThread::startSavingVideo()
 {
-    tempVid = new vector<Mat>();
     mutex.lock();
     saveVideo = true;
-    start_time = QDateTime::currentDateTime().toMSecsSinceEpoch();
+    video = new VideoWriter(filename.toStdString(),CV_FOURCC('M','J','P','G'),frame_rate, Size(frame_width,frame_height),true);
     mutex.unlock();
 }
 
@@ -113,72 +107,45 @@ void VideoThread::stopSavingVideo()
 {
     mutex.lock();
     saveVideo = false;
-    end_time = QDateTime::currentDateTime().toMSecsSinceEpoch();
-    postProcessVideo();
+    video->release();
     mutex.unlock();
 }
 
 
 // Show video
-void VideoThread::beginEmittingVideo()
+void VideoThread::startEmittingVideo()
 {
     showVideo = true;
 }
 
-void VideoThread::endEmittingVideo()
+void VideoThread::stopEmittingVideo()
 {
     showVideo = false;
-    //Clear image
-    videoImg = QImage(videoMat.cols, videoMat.rows, QImage::Format_RGB888);
-    emit processedImage(QPixmap::fromImage(videoImg));
+
+    // Emit a static icon
+    emit processedImage(QPixmap(":/video/video_icon.jpg"));
 }
 
 
-// Processing video data
-void VideoThread::postProcessVideo()
+// Stop thread
+void VideoThread::Stop()
 {
-    finalVid = new vector<Mat>();
-    int numFrames = tempVid->size();
-    double time_diff = (end_time - start_time)/1000.0;
-    double desiredFPS = frame_rate;
-    int desiredFrames = desiredFPS*time_diff;
+    stop = true;
+    saveVideo = false;
+    showVideo = false;
 
-    vector<double> newIndices = linspace(0, numFrames-1, desiredFrames);
-
-    video = new VideoWriter(filename.toStdString(),CV_FOURCC('M','J','P','G'),frame_rate, Size(frame_width,frame_height),true);
-    for (int i = 0; i < newIndices.size(); i++)
-    {
-        finalVid->push_back(tempVid->at((int)round(newIndices.at(i))));
-        video->write(finalVid->at(i));
+    if(video) {
+        video->release();
     }
-    video->release();
+
+    if(camera.isOpened()) {
+        camera.release();
+    }
+
 }
 
-vector<double> VideoThread::linspace(double a, double b, int n)
-{
-    vector<double> array;
-    double step = (b-a)/(n-1);
-
-    while(a <= b) {
-        array.push_back(a);
-        a += step;           // could recode to better handle rounding errors
-    }
-    return array;
-}
-
-
-// Other
 bool VideoThread::isStopped() const{
     return this->stop;
-}
-
-// Put thread to sleep
-void VideoThread::msleep(long ms){
-    QThread::msleep(ms);
-}
-
-void VideoThread::usleep(long us){
-    QThread::usleep(us);
 }
 
 
@@ -187,7 +154,6 @@ VideoThread::~VideoThread()
 {
     mutex.lock();
     stop = true;
-    camera.release();
     condition.wakeOne();
     mutex.unlock();
     wait();
