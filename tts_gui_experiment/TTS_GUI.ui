@@ -14,7 +14,7 @@
    <string>Tongue Tracking System v1.0</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,2,1,0,2">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,1,2">
     <property name="spacing">
      <number>3</number>
     </property>
@@ -329,7 +329,7 @@ p, li { white-space: pre-wrap; }
      </widget>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="playButtonLay" stretch="1,2,2">
+     <layout class="QHBoxLayout" name="playButtonLay" stretch="1,2,2,0">
       <item>
        <widget class="QPushButton" name="measureEMFButton">
         <property name="enabled">
@@ -394,36 +394,6 @@ p, li { white-space: pre-wrap; }
         </property>
        </spacer>
       </item>
-     </layout>
-    </item>
-    <item>
-     <spacer name="verticalSpacer">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="otherSensorLayout" stretch="2,1">
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
       <item>
        <layout class="QHBoxLayout" name="volumeHLay">
         <item>
@@ -450,6 +420,12 @@ p, li { white-space: pre-wrap; }
          <layout class="QVBoxLayout" name="videoLay" stretch="3,1">
           <item>
            <widget class="QLabel" name="videoFeed">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="autoFillBackground">
              <bool>false</bool>
             </property>

@@ -123,7 +123,7 @@ void VideoThread::stopEmittingVideo()
     showVideo = false;
 
     // Emit a static icon
-    emit processedImage(QPixmap(":/video/video_icon.jpg"));
+    emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(videoMat.cols, videoMat.rows));
 }
 
 
