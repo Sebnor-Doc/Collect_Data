@@ -1,66 +1,63 @@
 #ifndef ReadSensors_H
 #define ReadSensors_H
 
-#include "mojoserialport.h"
-#include "Sensor.h"
 #include "common.h"
-#include "CImg.h"
-
+#include <QVector>
 #include <QFile>
-#include <QWaitCondition>
+#include <QTextStream>
 #include <QMutex>
 #include <QThread>
-#include <QTextStream>
 
-#include <QVector>
+#include <boost/regex.h>
+#include <boost/asio/serial_port.hpp>
+#include <boost/asio.hpp>
+#include <boost/thread.hpp>
+
 
 class ReadSensors: public QThread
-{    Q_OBJECT
+{
+    Q_OBJECT
 
 private:
-    QWaitCondition condition;
-    QMutex mutex;
+    boost::asio::io_service io;
+    boost::asio::serial_port *serialport;
+    MagData magPacket;
 
+    // Thread status
     bool stop;
     bool save;
+    QMutex mutex;
 
-    MOJOSerialPort *sp;
-    QString source;
-
+    // Saving
     QString filename;
     QFile sensorOutputFile;
     QTextStream *sensorOutputFile_stream;
 
-
-protected:
-     void run();
+    // Mojo parameters
+    static const short PACKET_HEADER = 0xAA;
+    static const short PACKET_TAIL = 0xBB;
+    static const int PACKET_HEADER_LENGTH = 4;
+    static const int PACKET_TAIL_LENGTH = 4;
+    int numLostPackets;
 
 signals:
-   void newPacketAvail(MagData *packet);
+    void newPacketAvail(MagData packet);
 
 private slots:
-    void processPacket(MagData *packet);
+    void processPacket(MagData packet);
 
 public:
     ReadSensors(QObject *parent = 0);
     ~ReadSensors();
-
-    void Play();
-    void Stop();
-
+    void run();
+    void stopRecording();
     void beginRecording();
-
-    short getSensorData(int pcb, int sensor, int dim);
-
+    MagData getLastPacket();
     void setFileLocation(QString filename);
-    void saveToFile();
-    void stopSavingToFile();
-
+    void startSaving();
+    void stopSaving();
 
 private:
-    bool isStopped() const;
-    void setCOMPort(QString source);
-    bool checkCOMPorts();
-
+    void readPacket();
 };
 #endif // ReadSensors_H

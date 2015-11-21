@@ -34,7 +34,8 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     ui->measureEMFButton->setEnabled(false);
 
     // Connect to Mojo
-    rs = new ReadSensors();
+    rs = new ReadSensors(this);
+    rs->start(QThread::HighestPriority);
 
     // Intialize video
     video = new VideoThread();
@@ -272,17 +273,17 @@ void MainWindow::on_measureEMFButton_clicked()
     QString currentDateTime = QDateTime::currentDateTime().toString("yy-MM-dd_hh-mm");
     emfFile = experiment_root + "/EMF_" + currentDateTime + ".txt";
 
+    // Start saving mag data to EMF file
     rs->setFileLocation(emfFile);
-    rs->saveToFile();
-    rs->Play();
+    rs->startSaving();
 
+    // Record mag data for 1 second
     QTimer::singleShot(1000, this, SLOT(saveEMF()));
 }
 
 void MainWindow::saveEMF() {
     // Stop saving and recording magnetic data
-    rs->stopSavingToFile();
-    rs->Stop();
+    rs->stopSaving();
 
     MagData avgEMF;
     avgEMF.fill(0, 3*NUM_OF_SENSORS);
@@ -357,8 +358,7 @@ void MainWindow::beginTrial(){
 
     // Start data recording
     rs->setFileLocation(experiment_output_path + "_raw_sensor.txt"); // Magnetic stream
-    rs->saveToFile();
-    rs->Play();
+    rs->startSaving();
 
     video->setVideoName(experiment_output_path + "_video.avi");
     video->startSavingVideo();
@@ -372,14 +372,12 @@ void MainWindow::beginTrial(){
     audio2->setOutputLocation(QUrl::fromLocalFile(experiment_output_path + "_audio2.wav"));
     audio1->record();
     audio2->record();
-
 }
 
 void MainWindow::stopTrial(){
 
 //    loca->Stop();
-    rs->stopSavingToFile();
-    rs->Stop();
+    rs->stopSaving();
 
     video->stopSavingVideo();
 
@@ -429,7 +427,7 @@ void MainWindow::on_showMagButton_toggled(bool checked)
 {
     if (checked) {
         ui->showMagButton->setText("Hide Sensors");
-        sensorUi = new SensorDisplay(this, rs);
+        sensorUi = new SensorDisplay(rs, this);
         sensorUi->show();
         connect(sensorUi, SIGNAL(closed()), this, SLOT(sensorDisplayClosed()));
 
@@ -629,46 +627,31 @@ CImg<double> MainWindow::loadMatrix(string myString)
 void MainWindow::closeEvent(QCloseEvent *event){
 
     // Terminate Read sensor
-    if (rs) {
-        rs->stopSavingToFile();
-        rs->Stop();
-        delete rs;
-    }
+    rs->stopSaving();
+    rs->stopRecording();
 
     if (video){
-        video->Stop();
-        delete video;
+        video->Stop();      
     }
-    // Terminate Localization (if applicable)
-    if (loca) {
-        loca->stopSavingToFile();
-        loca->Stop();
-        delete loca;
-    }
+
+//    if (loca) {
+//        loca->stopSavingToFile();
+//        loca->Stop();
+//    }
 
     // Terminate audio
     if (audio1) {
         audio1->stop();
-        delete audio1;
-    }
-
-    if (audioProbe1) {
-        delete audioProbe1;
     }
 
     if (audio2) {
        audio2->stop();
-       delete audio2;
     }
 
-    if (audioProbe2) {
-        delete audioProbe2;
-    }
 
     // Close Display sensor UI
     if (sensorUi) {
         sensorUi->close();
-        delete sensorUi;
     }
 
     // Closing procedures

@@ -17,7 +17,8 @@ const int BAUD_RATE = 500000;
 //const int PACKET_SIZE = 145;
 
 
-typedef QVector<int> MagData;
+typedef QVector<short> MagData;
+const int dontcare = qRegisterMetaType<MagData>("MagData"); // Needed for Signal/Slot connections
 
 //Plot details
 //const int NUM_ROWS_PLOTS = 6;
