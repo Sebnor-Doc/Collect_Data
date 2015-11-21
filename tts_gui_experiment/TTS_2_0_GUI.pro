@@ -15,7 +15,6 @@ SOURCES += main.cpp\
         TTS_GUI.cpp \
     qcustomplot.cpp \
     pugixml.cpp \
-    mojoserialport.cpp \
     Magnet.cpp \
     Sensor.cpp \
     ReadSensors.cpp \
@@ -30,7 +29,6 @@ HEADERS  += TTS_GUI.h \
     pugixml.hpp \
     pugiconfig.hpp \
     CImg.h \
-    mojoserialport.h \
     Magnet.h \
     Sensor.h \
     ReadSensors.h \

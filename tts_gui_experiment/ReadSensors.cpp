@@ -4,13 +4,15 @@
 #include <QDebug>
 #include <QDateTime>
 
+#include <QMessageBox>
+
 #include <QSerialPortInfo>
+#include <QApplication>
 
-
-ReadSensors::ReadSensors(QObject *parent)
-    : QThread(parent)
+ReadSensors::ReadSensors(QObject *parent): QThread(parent)
 {
-    stop = true;
+    // Set thread state
+    stop = false;
     save = false;
 
     // Connect to Mojo by identifying its COM Port
@@ -26,91 +28,173 @@ ReadSensors::ReadSensors(QObject *parent)
 
     // Set Mojo Serial Port
     if (!mojoComPort.portName().isEmpty()) {
-        qDebug() << "Mojo Com Port found at: " << mojoComPort.portName();
-        setCOMPort(mojoComPort.portName());
+
+        serialport = new boost::asio::serial_port(io);
+
+        try {
+            serialport->open(mojoComPort.portName().toStdString());
+            qDebug() << "Mojo COM Port = " << mojoComPort.portName() << "\n";
+        }
+        catch(...) {
+            qDebug() << "\nERROR: CANNOT OPEN MOJO AT - " << mojoComPort.portName() << "\n";
+        }
+
+        serialport->set_option(boost::asio::serial_port_base::baud_rate(BAUD_RATE));
+
+//        setCOMPort(mojoComPort.portName());
     }
     else {
         qDebug() << "ERROR: NO COM PORT ASSOCIATED TO MOJO IS FOUND!!";
+        QMessageBox::critical((QWidget*)parent, "Mojo Not Found", "ERROR: NO COM PORT ASSOCIATED TO MOJO IS FOUND!!", QMessageBox::Ok, QMessageBox::NoButton);
     }
-}
 
-
-void ReadSensors::Play()
-{
-    if (!isRunning()) {
-        if (isStopped()){
-            stop = false;
-        }
-        start(HighestPriority);
-    }
+    // manage connection
+    connect(this, SIGNAL(newPacketAvail(MagData)), this, SLOT(processPacket(MagData)));
 }
 
 void ReadSensors::run()
 {
-    if (!checkCOMPorts()) {
-        stop = true;
-        qDebug() << "ERROR: CHECK COM PORT FAILED";
-        throw std::runtime_error("");
-    }
-
-    qRegisterMetaType<MagData*>("MagData*");
-    connect(sp, SIGNAL(newPacket(MagData*)), this, SLOT(processPacket(MagData*)));
+    numLostPackets = 0;
 
     while (!stop) {
-        mutex.lock();
-        sp->getSinglePacket();
-        mutex.unlock();
+        readPacket();
     }
 
-    disconnect(sp, SIGNAL(newPacket(MagData*)), this, SLOT(processPacket(MagData*)));
 }
 
+/* Manage Packet */
+void ReadSensors::readPacket() {
 
-void ReadSensors::processPacket(MagData *packet) {
+    //Purge buffers
+    PurgeComm(serialport->native_handle(), PURGE_RXCLEAR);
+
+    // Initialize variables
+    char streamchar;
+    short cur_num;
+    int prev_packetnumber = 0;
+    bool packetFound = false;
+
+    // Get a packet
+    while (!packetFound) {
+
+        int header_count = 0;
+        int tail_count = 0;
+        bool header_found = false;
+        bool tail_found = false;
+        std::vector<short> pktData;
+
+        // Identify the header from the data stream
+        while(!tail_found) {
+            // Read a byte from serial port
+            boost::asio::read(*serialport, boost::asio::buffer(&streamchar, 1));
+            cur_num = streamchar & 0xFF;
+
+            if (!header_found) {
+
+                if (cur_num == PACKET_HEADER) {
+                    header_count++;
+                    header_found = (header_count == PACKET_HEADER_LENGTH);
+                }
+                else {
+                    header_count = 0;
+                }
+            }
+
+            else if (!tail_found) {
+                 pktData.push_back(cur_num);
+
+                 if (cur_num == PACKET_TAIL) {
+                     tail_count++;
+                     tail_found = (tail_count == PACKET_TAIL_LENGTH);
+
+                     if (tail_found) {
+                         pktData.erase( pktData.end() - PACKET_TAIL_LENGTH, pktData.end());
+                     }
+
+                 }
+                 else {
+                     tail_count = 0;
+                 }
+
+            }
+        }
+
+        packetFound = (pktData.size() == EXPECTEDBYTES);
+
+        if (packetFound) {
+
+            if(pktData[0]!= prev_packetnumber)
+            {
+                numLostPackets++;
+            }
+
+            MagData tempPacket;
+
+            // Format packet data by combining 2 bytes per magnetic axis
+            for (int i = NOOFBYTESINPC; i < EXPECTEDBYTES - 1; i += 2) {
+
+                char lower = pktData[i] & 0xFF;
+                char upper = pktData[i + 1] & 0xFF;
+                short data = ((upper << 8) | (lower & 0xFF));
+
+                tempPacket.push_back(data);
+            }
+
+            prev_packetnumber = pktData[0];
+            prev_packetnumber++;
+
+            mutex.lock();
+            magPacket = tempPacket;
+            mutex.unlock();
+
+            emit newPacketAvail(magPacket);
+        }
+    }
+}
+
+void ReadSensors::processPacket(MagData packet) {
     mutex.lock();
+
     // Save raw magnetic information
     if (save)
     {
-        for (int i = 0; i < packet->size(); i++) {
-            (*sensorOutputFile_stream) << packet->at(i) << " ";
+        for (int i = 0; i < packet.size(); i++) {
+            (*sensorOutputFile_stream) << packet.at(i) << " ";
         }
 
         (*sensorOutputFile_stream) << QDateTime::currentDateTime().toMSecsSinceEpoch() << endl;
     }
 
-    emit newPacketAvail(packet);
     mutex.unlock();
 }
 
-
-short ReadSensors::getSensorData(int pcb, int sensor, int dim)
+MagData ReadSensors::getLastPacket()
 {
-    return sp->getSensorData(pcb, sensor, dim);
+    return this->magPacket;
 }
 
-/* Manage thread status */
-void ReadSensors::Stop()
+
+/* Manage REcording status */
+void ReadSensors::stopRecording()
 {
     stop = true;
-}
-
-bool ReadSensors::isStopped() const{
-    return this->stop;
 }
 
 void ReadSensors::beginRecording()
 {
     stop = false;
-
 }
+
 
 /* Manage Saving */
 void ReadSensors::setFileLocation(QString filename)
 {
+    mutex.lock();
     this->filename = filename;
+    mutex.unlock();
 }
 
-void ReadSensors::saveToFile()
+void ReadSensors::startSaving()
 {
     mutex.lock();
     save = true;
@@ -120,7 +204,7 @@ void ReadSensors::saveToFile()
     mutex.unlock();
 }
 
-void ReadSensors::stopSavingToFile()
+void ReadSensors::stopSaving()
 {
     mutex.lock();
     save = false;
@@ -128,47 +212,8 @@ void ReadSensors::stopSavingToFile()
     mutex.unlock();
 }
 
-
-/* Manage connection to Mojo */
-void ReadSensors::setCOMPort(QString source)
-{
-    this->source = source;
-    try
-    {
-        sp = new MOJOSerialPort(source.toStdString());
-        qDebug() << "Mojo connected successfully!";
-        sp->getSinglePacket();
-    }
-    catch(...)
-    {
-        qDebug()<<"ERROR: MOJO PORT FOUND BUT CANNOT CONNECT: " << source;
-    }
-}
-
-bool ReadSensors::checkCOMPorts()
-{
-    mutex.lock();
-    sp->getSinglePacket();
-//    if (sp->rawData.size() == EXPECTEDBYTES-NOOFBYTESINPC)
-    if (sp->rawData.size() == (3*NUM_OF_SENSORS))
-    {
-        mutex.unlock();
-        return true;
-    }
-    else
-    {
-        qDebug()<<"ERROR: PACKET SIZE RECEIVED FROM MOJO IS INCORRECT" << endl;
-        mutex.unlock();
-        return false;
-    }
-}
-
 /* Other */
 ReadSensors::~ReadSensors()
 {
-    mutex.lock();
-    stop = true;
-    condition.wakeOne();
-    mutex.unlock();
-    wait();
+    serialport->close();
 }

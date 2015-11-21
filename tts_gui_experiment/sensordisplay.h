@@ -6,7 +6,6 @@
 #include "qcustomplot.h"
 #include "common.h"
 #include "ReadSensors.h"
-
 #include <QTimer>
 
 namespace Ui {
@@ -18,14 +17,19 @@ class SensorDisplay : public QDialog
     Q_OBJECT
 
 public:
-    explicit SensorDisplay(QWidget *parent = 0, ReadSensors *readSensor = 0);
+    explicit SensorDisplay(ReadSensors *rs, QWidget *parent = 0);
     ~SensorDisplay();
 
 private:
     Ui::SensorDisplay *ui;
-
     ReadSensors *rs;
     QTimer *magTimer;
+    double startTime;
+
+    typedef struct MagInfo {
+        double time;
+        MagData* data;
+    } MagInfo;
 
     typedef struct Plot {
         QCPGraph *graphX;
@@ -44,7 +48,7 @@ private:
 
 
 public slots:
-    void updateMagPlot(MagData *data);
+    void updateMagPlot();
     void closeEvent(QCloseEvent *event);
 
 signals:

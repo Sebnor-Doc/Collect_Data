@@ -3,16 +3,18 @@
 
 #include <QDateTime>
 
-SensorDisplay::SensorDisplay(QWidget *parent, ReadSensors *readSensor) :
-    QDialog(parent),
-    ui(new Ui::SensorDisplay)
+SensorDisplay::SensorDisplay(ReadSensors *rs, QWidget *parent) : QDialog(parent), ui(new Ui::SensorDisplay)
 {
-    this->rs = readSensor;
+    this->rs = rs;
+    rs->beginRecording();
 
     ui->setupUi(this);
-    ui->magPlot->plotLayout()->clear();
+    this->setWindowState(Qt::WindowMaximized);
+
 
     // Set graphs
+    ui->magPlot->plotLayout()->clear();
+
     for (int i = 0; i < NUM_OF_SENSORS; i++) {
 
         int row = i / NUM_OF_SENSORS_PER_BOARD;
@@ -23,7 +25,6 @@ SensorDisplay::SensorDisplay(QWidget *parent, ReadSensors *readSensor) :
         plots[i].axis->axis(QCPAxis::atLeft)->setRange(-RANGE_VALS, RANGE_VALS);
         plots[i].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(0, 0, 255));
         plots[i].axis->axis(QCPAxis::atTop)->setLabel(QString("PCB %1 ID %2").arg(row+1).arg(col+1));
-        plots[i].axis->axis(QCPAxis::atBottom)->setAutoTicks(false);
         ui->magPlot->plotLayout()->addElement(row, col, plots[i].axis);
 
         plots[i].graphX = ui->magPlot->addGraph(plots[i].axis->axis(QCPAxis::atBottom), plots[i].axis->axis(QCPAxis::atLeft));
@@ -36,45 +37,55 @@ SensorDisplay::SensorDisplay(QWidget *parent, ReadSensors *readSensor) :
 
     }
 
-    rs->Play();
-
+    // Start Timer
     magTimer = new QTimer(this);
     magTimer->start(50);
+    startTime = -1;
 
-    connect(rs, SIGNAL(newPacketAvail(MagData *)), this, SLOT(updateMagPlot(MagData *)));
-    connect(magTimer, SIGNAL(timeout()), ui->magPlot, SLOT(replot()));
+    // Manage connection
+    connect(magTimer, SIGNAL(timeout()), this, SLOT(updateMagPlot()));
 }
 
-void SensorDisplay::updateMagPlot(MagData *data) {
+void SensorDisplay::updateMagPlot() {
 
-    for (int i = 0; i < NUM_OF_SENSORS; i++)
-    {
-//        int row = i / NUM_OF_SENSORS_PER_BOARD;
-//        int col = i % NUM_OF_SENSORS_PER_BOARD;
+    // Set time stamp (in sec.)
+    double time;
 
-        // x axis data for real time update
+    if (startTime == -1) {
+        startTime = QDateTime::currentDateTime().toMSecsSinceEpoch();
+        time = 0.0;
+    }
+    else {
+        time = (QDateTime::currentDateTime().toMSecsSinceEpoch() - startTime) / 1000.0;
+    }
 
-        double time = QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000.0;
-//        double x = rs->getSensorData(row, col, 0);
-//        double y = rs->getSensorData(row, col, 1);
-//        double z = rs->getSensorData(row, col, 2);
 
-        int x = data->at(i*3);
-        int y = data->at(i*3 + 1);
-        int z = data->at(i*3 + 2);
+    MagData data = rs->getLastPacket();
 
-        // add data to lines:
-        plots[i].graphX->addData(time, x);
-        plots[i].graphY->addData(time, y);
-        plots[i].graphZ->addData(time, z);
+   for (int i = 0; i < NUM_OF_SENSORS; i++)
+   {
+       int x = data.at(i*3);
+       int y = data.at(i*3 + 1);
+       int z = data.at(i*3 + 2);
 
-        // remove data of lines that's outside visible range:
-        plots[i].graphX->removeDataBefore(time-8);
-        plots[i].graphY->removeDataBefore(time-8);
-        plots[i].graphZ->removeDataBefore(time-8);
+       // add data to lines:
+       plots[i].graphX->addData(time, x);
+       plots[i].graphY->addData(time, y);
+       plots[i].graphZ->addData(time, z);
 
-        // make key axis range scroll with the data (at a constant range size of 8):
-        plots[i].axis->axis(QCPAxis::atBottom)->setRange(time+0.25, 8, Qt::AlignRight);
+       // remove data of lines that's outside visible range:
+       double lowerBound = time - 8;
+       if (lowerBound > 0) {
+           plots[i].graphX->removeDataBefore(lowerBound);
+           plots[i].graphY->removeDataBefore(lowerBound);
+           plots[i].graphZ->removeDataBefore(lowerBound);
+       }
+
+       // make key axis range scroll with the data (at a constant range size of 8):
+       plots[i].axis->axis(QCPAxis::atBottom)->setRange(time+0.25, 8, Qt::AlignRight);
+    }
+   ui->magPlot->replot();
+
 
 //        //Check to see if sensor is working correctly
 //        plots[i].check2 = plots[i].check1;
@@ -102,16 +113,12 @@ void SensorDisplay::updateMagPlot(MagData *data) {
 //        }
 
 //        plots[i].key = time;
-    }
-
 
 }
 
 void SensorDisplay::closeEvent(QCloseEvent *event) {
-    rs->Stop();
+
     magTimer->stop();
-    disconnect(magTimer, SIGNAL(timeout()), ui->magPlot, SLOT(replot()));
-    disconnect(rs, SIGNAL(newPacketAvail(MagData *)), this, SLOT(updateMagPlot(MagData *)));
     emit closed();
     event->accept();
 }
