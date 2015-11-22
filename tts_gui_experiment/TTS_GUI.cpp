@@ -37,6 +37,9 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     rs = new ReadSensors(this);
     rs->start(QThread::HighestPriority);
 
+    loca = new Localization(rs, sensors, magnet, this);
+    loca->start(QThread::HighPriority);
+
     // Intialize video
     video = new VideoThread();
     connect(video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)) );

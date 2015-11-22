@@ -41,7 +41,8 @@ private:
     int numLostPackets;
 
 signals:
-    void newPacketAvail(MagData packet);
+    void packetRead(MagData packet);
+    void packetSaved(MagData packet);
 
 private slots:
     void processPacket(MagData packet);

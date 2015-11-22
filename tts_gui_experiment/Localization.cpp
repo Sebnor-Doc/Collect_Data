@@ -2,8 +2,6 @@
 #include "asa047.hpp" // Nelder-Mead algo.
 
 #include <QDateTime>
-//#include <time.h>
-#include <QUrl>
 #include <QDebug>
 
 
@@ -26,59 +24,51 @@
 //}
 
 
-Localization::Localization(ReadSensors *rs, QVector<Sensor*> &sensors, Magnet &magnet, QObject *parent)
-    : QThread(parent)
+Localization::Localization(ReadSensors *rs, QVector<Sensor*> &sensors, Magnet &magnet, QObject *parent): QThread(parent)
 {
-    stop = true;
+    stop = false;
     this->rs = rs;
     this->sensors = sensors;
-    this->magnet = magnet;
-}
-
-
-void Localization::Play()
-{
-    if (!isRunning()) {
-        if (isStopped()){
-            stop = false;
-        }
-        start(HighestPriority);
-    }
+    this->magnet = magnet;   
 }
 
 
 void Localization::run()
 {
-    saveToFile();
-    connect(rs, SIGNAL(newPacketAvail(MagData*)), this, SLOT(computeLocalization(MagData*)));
+    connect(rs, SIGNAL(packetSaved(MagData)), this, SLOT(computeLocalization(MagData)));
 }
 
 
-void Localization::computeLocalization(MagData* magData)
+void Localization::computeLocalization(MagData magData)
 {
     mutex.lock();
-    // Update sensor fields
-    for (int i = 0; i < NUM_OF_SENSORS; i++)
-    {
-        int x = magData->at(i*3);
-        int y = magData->at(i*3 + 1);
-        int z = magData->at(i*3 + 2);
-        sensors[i]->currentField(x, y, z);
-//        sensors[i]->calibrate();
-    }
-
-    // Localize
-    magnet = localizer(magnet);
-
-    // Save localized magnet data
-    (*outputFile_stream) << magnet.m_position(0) << " "
-                         << magnet.m_position(1) << " "
-                         << magnet.m_position(2) << " "
-                         << magnet.m_theta       << " "
-                         << magnet.m_phi         << " "
-                         << QDateTime::currentDateTime().toMSecsSinceEpoch() << endl;
-
+    qDebug() << "Data [ " << magData.at(0) << " " << magData.at(1) << " " << magData.at(2) ;
     mutex.unlock();
+
+
+//    mutex.lock();
+//    // Update sensor fields
+//    for (int i = 0; i < NUM_OF_SENSORS; i++)
+//    {
+//        int x = magData->at(i*3);
+//        int y = magData->at(i*3 + 1);
+//        int z = magData->at(i*3 + 2);
+//        sensors[i]->currentField(x, y, z);
+////        sensors[i]->calibrate();
+//    }
+
+//    // Localize
+//    magnet = localizer(magnet);
+
+//    // Save localized magnet data
+//    (*outputFile_stream) << magnet.m_position(0) << " "
+//                         << magnet.m_position(1) << " "
+//                         << magnet.m_position(2) << " "
+//                         << magnet.m_theta       << " "
+//                         << magnet.m_phi         << " "
+//                         << QDateTime::currentDateTime().toMSecsSinceEpoch() << endl;
+
+//    mutex.unlock();
 }
 
 
@@ -107,26 +97,6 @@ Magnet Localization::localizer(Magnet &magnet)
     return newMagnet;
 }
 
-Localization::~Localization()
-{
-    mutex.lock();
-    stop = true;
-    condition.wakeOne();
-    mutex.unlock();
-    wait();
-}
-
-void Localization::Stop()
-{
-    disconnect(rs, SIGNAL(newPacketAvail(MagData*)), this, SLOT(computeLocalization(MagData*)));
-    stopSavingToFile();
-    stop = true;
-}
-
-bool Localization::isStopped() const{
-    return this->stop;
-}
-
 
 /* Manage Saving localization data  */
 void Localization::setFileLocation(QString filename)
@@ -134,7 +104,7 @@ void Localization::setFileLocation(QString filename)
     this->filename = filename;
 }
 
-void Localization::saveToFile()
+void Localization::startSaving()
 {
     mutex.lock();
     save = true;
@@ -144,20 +114,32 @@ void Localization::saveToFile()
     mutex.unlock();
 }
 
-void Localization::stopSavingToFile()
+void Localization::stopSaving()
 {
-    if (save)
-    {
-        mutex.lock();
-        save = false;
+    mutex.lock();
+
+    disconnect(rs, SIGNAL(newPacketAvail(MagData)), this, SLOT(computeLocalization(MagData)));
+    save = false;
+
+    if(outputFile.isOpen()){
         outputFile.close();
-        mutex.unlock();
     }
+
+    mutex.unlock();
 }
 
-/* Other */
-CImg<double> Localization::currentPosition()
+
+/* Stop Execution */
+void Localization::Stop()
 {
-    return magnet.position();
+    stopSaving();
+    stop = true;
 }
+
+Localization::~Localization()
+{
+    stop = true;
+}
+
+
 

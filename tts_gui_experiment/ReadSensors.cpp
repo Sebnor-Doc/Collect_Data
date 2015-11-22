@@ -40,8 +40,6 @@ ReadSensors::ReadSensors(QObject *parent): QThread(parent)
         }
 
         serialport->set_option(boost::asio::serial_port_base::baud_rate(BAUD_RATE));
-
-//        setCOMPort(mojoComPort.portName());
     }
     else {
         qDebug() << "ERROR: NO COM PORT ASSOCIATED TO MOJO IS FOUND!!";
@@ -49,7 +47,7 @@ ReadSensors::ReadSensors(QObject *parent): QThread(parent)
     }
 
     // manage connection
-    connect(this, SIGNAL(newPacketAvail(MagData)), this, SLOT(processPacket(MagData)));
+    connect(this, SIGNAL(packetRead(MagData)), this, SLOT(processPacket(MagData)));
 }
 
 void ReadSensors::run()
@@ -147,7 +145,7 @@ void ReadSensors::readPacket() {
             magPacket = tempPacket;
             mutex.unlock();
 
-            emit newPacketAvail(magPacket);
+            emit packetRead(magPacket);
         }
     }
 }
@@ -163,6 +161,8 @@ void ReadSensors::processPacket(MagData packet) {
         }
 
         (*sensorOutputFile_stream) << QDateTime::currentDateTime().toMSecsSinceEpoch() << endl;
+
+        emit packetSaved(packet);
     }
 
     mutex.unlock();
