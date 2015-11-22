@@ -41,8 +41,11 @@ void VideoThread::setCamera()
     int cameraIdx = -1;
 
     for (int i = 0; i < cameras.size(); i++) {
+        // Get the name of the camera
+        QString cameraName = cameras.at(i).description();
 
-        if (cameras.at(i).description().contains("LifeCam")) {
+        // Search if name matches one of TTS camera
+        if (cameraName.contains("LifeCam") || cameraName.contains("PC CAMERA")) {
             cameraIdx = i;
             break;
         }
@@ -50,7 +53,7 @@ void VideoThread::setCamera()
 
     // Open LifeCam or throw runtime exception if cannot be found
     if (cameraIdx == -1) {
-        QString errorMsg = "LifeCam camera cannot be found";
+        QString errorMsg = "TTS camera cannot be found";
         qDebug() << errorMsg << endl;
 
     } else {
@@ -58,7 +61,7 @@ void VideoThread::setCamera()
         frame_width  = camera.get(CV_CAP_PROP_FRAME_WIDTH);
         frame_height = camera.get(CV_CAP_PROP_FRAME_HEIGHT);
         frame_rate = 30;
-        qDebug() << "LifeCam connected successfully";
+        qDebug() << "Camera Device: " << cameras.at(cameraIdx).description() << "\n";
     }
 }
 
