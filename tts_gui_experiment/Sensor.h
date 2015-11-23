@@ -23,26 +23,28 @@
 class Sensor {
 
 public:
+    //////////////////////////////////////
+    /// Variables
+    /////////////////////////////////////
     unsigned int id;
     cimg_library::CImg<int> m_currentField;
-    cimg_library::CImg<double> m_extrapField;
+//    cimg_library::CImg<double> m_extrapField;
     QVector<cimg_library::CImg<double>> m_calFields;
     QVector<cimg_library::CImg<double>> m_theoFields;
     QVector<cimg_library::CImg<double>> m_theoFieldPositions;
     cimg_library::CImg<double> m_position, m_EMF, m_offset, m_gain, m_angles;
 
-    QVector<int> v_currentField;
 
+    //////////////////////////////////////
+    /// Methods
+    /////////////////////////////////////
 	Sensor();
 
-    void calibrate();
-    cimg_library::CImg<double> calibrate(cimg_library::CImg<double> field);
+    QVector<int> getCurrentField();
+    void updateCurrentField(int Bx, int By, int Bz);
 
 	cimg_library::CImg<double> position();
 	void position(cimg_library::CImg<double> position);
-
-    cimg_library::CImg<int> currentField();
-    void currentField(int x, int y, int z);
 
 	cimg_library::CImg<double> EMF();
 	void EMF(cimg_library::CImg<double> EMF);
@@ -53,17 +55,14 @@ public:
 	cimg_library::CImg<double> gain();
 	void gain(cimg_library::CImg<double> gain);
 
-	cimg_library::CImg<double> rotation();
-	cimg_library::CImg<double> rotationInverse();
-
 	cimg_library::CImg<double> angles();    
 	Sensor& angles(cimg_library::CImg<double> angles);
     Sensor& angles(double alpha, double beta, double gamma);
 
+private:
+    cimg_library::CImg<double> rotation();
+    cimg_library::CImg<double> rotationInverse();
     void print();
-
-    //Calibration with Nelder Mead
-//    void calibrateParams(Magnet *cal);
 };
 
 

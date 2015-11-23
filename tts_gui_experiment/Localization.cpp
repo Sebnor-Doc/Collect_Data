@@ -4,6 +4,8 @@
 #include <QDateTime>
 #include <QDebug>
 
+#include <iostream>
+
 
 //Magnet magnet;
 //QVector<Sensor*> sensors;
@@ -27,6 +29,7 @@
 Localization::Localization(ReadSensors *rs, QVector<Sensor*> &sensors, Magnet &magnet, QObject *parent): QThread(parent)
 {
     stop = false;
+    save = false;
     this->rs = rs;
     this->sensors = sensors;
     this->magnet = magnet;   
@@ -35,40 +38,62 @@ Localization::Localization(ReadSensors *rs, QVector<Sensor*> &sensors, Magnet &m
 
 void Localization::run()
 {
-    connect(rs, SIGNAL(packetSaved(MagData)), this, SLOT(computeLocalization(MagData)));
+
 }
 
 
 void Localization::computeLocalization(MagData magData)
 {
+
     mutex.lock();
-    qDebug() << "Data [ " << magData.at(0) << " " << magData.at(1) << " " << magData.at(2) ;
+
+    // Update sensor fields
+    for (int i = 0; i < NUM_OF_SENSORS; i++)
+    {
+        int Bx = magData.at(i*3);
+        int By = magData.at(i*3 + 1);
+        int Bz = magData.at(i*3 + 2);
+
+        sensors[i]->updateCurrentField(Bx, By, Bz);
+
+        QVector<int> magField = sensors[i]->getCurrentField();
+
+//        (*outputFile_stream) << Bx << " " << By << " " << Bz << endl;
+
+        (*outputFile_stream) << magField.at(0) << " "
+                             << magField.at(1) << " "
+                             << magField.at(2) << " ";
+
+
+    }
+    (*outputFile_stream) << endl;
+
+
     mutex.unlock();
 
 
-//    mutex.lock();
-//    // Update sensor fields
-//    for (int i = 0; i < NUM_OF_SENSORS; i++)
-//    {
-//        int x = magData->at(i*3);
-//        int y = magData->at(i*3 + 1);
-//        int z = magData->at(i*3 + 2);
-//        sensors[i]->currentField(x, y, z);
-////        sensors[i]->calibrate();
-//    }
 
-//    // Localize
-//    magnet = localizer(magnet);
+    //
 
-//    // Save localized magnet data
-//    (*outputFile_stream) << magnet.m_position(0) << " "
-//                         << magnet.m_position(1) << " "
-//                         << magnet.m_position(2) << " "
-//                         << magnet.m_theta       << " "
-//                         << magnet.m_phi         << " "
-//                         << QDateTime::currentDateTime().toMSecsSinceEpoch() << endl;
+    //
 
-//    mutex.unlock();
+
+
+
+
+    //    // Localize
+    //    magnet = localizer(magnet);
+
+    //    // Save localized magnet data
+    //    (*outputFile_stream) << magnet.m_position(0) << " "
+    //                         << magnet.m_position(1) << " "
+    //                         << magnet.m_position(2) << " "
+    //                         << magnet.m_theta       << " "
+    //                         << magnet.m_phi         << " "
+    //                         << QDateTime::currentDateTime().toMSecsSinceEpoch() << endl;
+
+
+
 }
 
 
@@ -110,15 +135,17 @@ void Localization::startSaving()
     save = true;
     outputFile.setFileName(filename);
     outputFile_stream = new QTextStream(&outputFile);
-    outputFile.open(QIODevice::WriteOnly | QIODevice::Text);
+    outputFile.open(QIODevice::WriteOnly | QIODevice::Text);   
     mutex.unlock();
+
+    connect(rs, SIGNAL(packetSaved(MagData)), this, SLOT(computeLocalization(MagData)));
+
 }
 
 void Localization::stopSaving()
 {
+    disconnect(rs, SIGNAL(packetSaved(MagData)), this, SLOT(computeLocalization(MagData)));
     mutex.lock();
-
-    disconnect(rs, SIGNAL(newPacketAvail(MagData)), this, SLOT(computeLocalization(MagData)));
     save = false;
 
     if(outputFile.isOpen()){
