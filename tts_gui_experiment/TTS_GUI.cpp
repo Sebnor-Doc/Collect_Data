@@ -37,6 +37,9 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     rs = new ReadSensors(this);
     rs->start(QThread::HighestPriority);
 
+    loca = new Localization(rs, sensors, magnet, this);
+    loca->start(QThread::HighPriority);
+
     // Intialize video
     video = new VideoThread();
     connect(video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)) );
@@ -141,7 +144,6 @@ void MainWindow::loadCalibration(QString calibFilename) {
         newSensor->angles(loadVector(nodeSensor.child("angles").child_value()));
 
         sensors.push_back(newSensor);
-        //sensors[i]->print();  // Print sensor parameters
         i++;
     }
 
@@ -275,7 +277,13 @@ void MainWindow::on_measureEMFButton_clicked()
 
     // Start saving mag data to EMF file
     rs->setFileLocation(emfFile);
+
+    QString locaFile = experiment_root + "/EMF_Loca.txt";
+    loca->setFileLocation(locaFile);
+
+    loca->startSaving();
     rs->startSaving();
+
 
     // Record mag data for 1 second
     QTimer::singleShot(1000, this, SLOT(saveEMF()));
@@ -284,9 +292,10 @@ void MainWindow::on_measureEMFButton_clicked()
 void MainWindow::saveEMF() {
     // Stop saving and recording magnetic data
     rs->stopSaving();
+    loca->stopSaving();
 
-    MagData avgEMF;
-    avgEMF.fill(0, 3*NUM_OF_SENSORS);
+    QVector<int> avgEMF(3*NUM_OF_SENSORS);
+    avgEMF.fill(0);
 
     int numSamples = 0;
 
@@ -303,6 +312,7 @@ void MainWindow::saveEMF() {
                 avgEMF[i] += ((QString)sample.at(i)).toInt();
             }
         }
+
     }
     else {
         qDebug() << "ERROR: CANNOT READ EMF FILE";
@@ -316,9 +326,9 @@ void MainWindow::saveEMF() {
     if (avgEmfFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
 
         for (int i = 0; i < NUM_OF_SENSORS; i++) {
-            int x = avgEMF.at(3*i);
-            int y = avgEMF.at(3*i + 1);
-            int z = avgEMF.at(3*i + 2);
+            int x = avgEMF.at(3*i) / numSamples;
+            int y = avgEMF.at(3*i + 1) / numSamples;
+            int z = avgEMF.at(3*i + 2) / numSamples;
             avgEmfStream << x << " " << y << " " << z << endl;
             sensors[i]->m_EMF.fill(x, y, z);
         }

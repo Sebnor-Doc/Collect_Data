@@ -9,31 +9,35 @@
 #include "common.h" // for PI
 #include <QDebug>
 
-
 using std::cout;
 using std::endl;
 using cimg_library::CImg;
 
 Sensor::Sensor() {
-    this->m_position.assign(1,3).fill(0);
-    this->m_EMF.assign(1,3).fill(0);
-    this->m_offset.assign(1,3).fill(0);
-    this->m_gain.assign(3,3).fill(0);
-    this->m_angles.assign(1,3).fill(0);
-    this->m_currentField.assign(1,3).fill(0);
-    this->m_extrapField.assign(1,3).fill(0);
+    m_position.assign(1,3).fill(0);
+    m_EMF.assign(1,3).fill(0);
+    m_offset.assign(1,3).fill(0);
+    m_gain.assign(3,3).fill(0);
+    m_angles.assign(1,3).fill(0);
 
-    v_currentField.fill(0,3);
+
+    m_currentField.assign(1,3).fill(0);
+//    m_extrapField.assign(1,3).fill(0);
+
 }
 
 
 /* ---------------------------------------------------- *
- *                  Calibration                         *
+ * Compute actual magnetic field from raw sensor readings *
  * ---------------------------------------------------- */
 
-void Sensor::calibrate() {
-    m_extrapField =  this->rotation()*this->gain()*(this->currentField() - this->EMF() + this->offset());
+void Sensor::updateCurrentField(int Bx, int By, int Bz){
+    cimg_library::CImg<int> rawMagField;
+    rawMagField.assign(1,3).fill(Bx, By, Bz);
+
+    m_currentField =  rotation()*gain()*(rawMagField - m_EMF + m_offset);
 }
+
 
 CImg<double> Sensor::rotation() {
     CImg<double> R(3,3,1,1,0);
@@ -93,20 +97,18 @@ void Sensor::offset(CImg<double> offset) {
 }
 
 // Current Field
-cimg_library::CImg<int> Sensor::currentField()
+QVector<int> Sensor::getCurrentField()
 {
-    return this->m_currentField;
+    QVector<int> magField;
+    magField.reserve(3);
+
+    magField.append(m_currentField(0,0));
+    magField.append(m_currentField(0,1));
+    magField.append(m_currentField(0,2));
+
+    return magField;
 }
 
-void Sensor::currentField(int x, int y, int z){
-    qDebug() << "x: " << x << "\ty: " << y << "\tz: " << z;
-    v_currentField[0] = x;
-    v_currentField[1] = y;
-    v_currentField[2] = z;
-
-//    this->m_currentField.fill(x,y,z);
-    qDebug() << "current field DONE";
-}
 
 // Angles
 CImg<double> Sensor::angles() {

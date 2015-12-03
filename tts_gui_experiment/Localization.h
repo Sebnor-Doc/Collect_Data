@@ -30,7 +30,8 @@ private:
     bool stop;
     bool save;
     QMutex mutex;
-    QWaitCondition condition;
+
+
 
     // Sensor and magnet
     ReadSensors *rs;
@@ -47,27 +48,22 @@ private:
      void run();
 
 private slots:
-     void computeLocalization(MagData *magData);
+     void computeLocalization(MagData magData);
 
  public:
     Localization(ReadSensors *rs, QVector<Sensor*> &sensors, Magnet &magnet, QObject *parent = 0);
     ~Localization();
 
     // Manage thread status
-    void Play();
     void Stop();
-    bool isStopped() const;
 
     // Localization of mag data
     Magnet localizer(Magnet &magnet);
 
     // Save localized data
     void setFileLocation(QString filename);
-    void saveToFile();
-    void stopSavingToFile();
-
-    // Other
-    CImg<double> currentPosition();
+    void startSaving();
+    void stopSaving();
 
 };
 #endif // Localization_H
