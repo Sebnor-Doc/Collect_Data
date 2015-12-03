@@ -545,6 +545,12 @@ void MainWindow::on_trialBox_currentIndexChanged(int index)
 {
     // Reset class box
     ui->classBox->setCurrentIndex(0);
+
+    // If only 1 class, need to manually call event handler
+    // as current index does not change (stay at 0)
+    if(classUtter.size() == 1) {
+        on_classBox_currentIndexChanged(0);
+    }
 }
 
 void MainWindow::on_classBox_currentIndexChanged(int index)
@@ -561,11 +567,16 @@ void MainWindow::on_classBox_currentIndexChanged(int index)
         ui->utteranceBox->addItem(formatUtter);
     }
 
-
     connect(ui->utteranceBox, SIGNAL(currentIndexChanged(int)), this, SLOT(on_utteranceBox_currentIndexChanged(int)));
 
     // Reset drop-down list to first item
     ui->utteranceBox->setCurrentIndex(0);
+
+    // If only 1 utterance, need to manually call event handler
+    // as current index does not change (stay at 0)
+    if (utter.at(index)->size() == 1) {
+        on_utteranceBox_currentIndexChanged(0);
+    }
 }
 
 void MainWindow::on_utteranceBox_currentIndexChanged(int index)
@@ -576,7 +587,6 @@ void MainWindow::on_utteranceBox_currentIndexChanged(int index)
     ui->startStopTrialButton->setEnabled(true);
     ui->startStopTrialButton->setText("Start");
 }
-
 
 
 /* ********************************************************* *
