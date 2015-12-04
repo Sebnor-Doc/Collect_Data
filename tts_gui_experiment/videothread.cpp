@@ -31,6 +31,12 @@ void VideoThread::run()
         processVideo();
         mutex.unlock();
     }
+
+    // Releasing video writer if saving in-process and stop requested
+    if(video) {
+        video->release();
+    }
+
 }
 
 void VideoThread::setCamera()
@@ -133,18 +139,11 @@ void VideoThread::stopEmittingVideo()
 // Stop thread
 void VideoThread::Stop()
 {
+    mutex.lock();
     stop = true;
     saveVideo = false;
     showVideo = false;
-
-    if(video) {
-        video->release();
-    }
-
-    if(camera.isOpened()) {
-        camera.release();
-    }
-
+    mutex.unlock();
 }
 
 bool VideoThread::isStopped() const{
@@ -155,9 +154,10 @@ bool VideoThread::isStopped() const{
 // Destructor
 VideoThread::~VideoThread()
 {
-    mutex.lock();
-    stop = true;
-    condition.wakeOne();
-    mutex.unlock();
-    wait();
+    delete video;
+
+    if(camera.isOpened()) {
+        camera.release();
+    }
+
 }

@@ -37,11 +37,8 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     rs = new ReadSensors(this);
     rs->start(QThread::HighestPriority);
 
-    loca = new Localization(rs, sensors, magnet, this);
-    loca->start(QThread::HighPriority);
-
     // Intialize video
-    video = new VideoThread();
+    video = new VideoThread(this);
     connect(video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)) );
 
     // Initialize Audio
@@ -63,9 +60,6 @@ void MainWindow::on_configButton_clicked()
 
     // Setup procedures
     setupExperiment();
-
-
-    loca = new Localization(rs, sensors, magnet, this);
 
     // Set state of buttons
     ui->measureEMFButton->setEnabled(true);
@@ -277,13 +271,7 @@ void MainWindow::on_measureEMFButton_clicked()
 
     // Start saving mag data to EMF file
     rs->setFileLocation(emfFile);
-
-    QString locaFile = experiment_root + "/EMF_Loca.txt";
-    loca->setFileLocation(locaFile);
-
-    loca->startSaving();
     rs->startSaving();
-
 
     // Record mag data for 1 second
     QTimer::singleShot(1000, this, SLOT(saveEMF()));
@@ -292,7 +280,6 @@ void MainWindow::on_measureEMFButton_clicked()
 void MainWindow::saveEMF() {
     // Stop saving and recording magnetic data
     rs->stopSaving();
-    loca->stopSaving();
 
     QVector<int> avgEMF(3*NUM_OF_SENSORS);
     avgEMF.fill(0);
@@ -650,15 +637,6 @@ void MainWindow::closeEvent(QCloseEvent *event){
     rs->stopSaving();
     rs->stopRecording();
 
-    if (video){
-        video->Stop();      
-    }
-
-//    if (loca) {
-//        loca->stopSavingToFile();
-//        loca->Stop();
-//    }
-
     // Terminate audio
     if (audio1) {
         audio1->stop();
@@ -668,10 +646,13 @@ void MainWindow::closeEvent(QCloseEvent *event){
        audio2->stop();
     }
 
-
     // Close Display sensor UI
     if (sensorUi) {
         sensorUi->close();
+    }
+
+    if (video){
+        video->Stop();
     }
 
     // Closing procedures

@@ -4,11 +4,13 @@
 #
 #-------------------------------------------------
 
+TARGET = TTS_NEU
+VERSION = 1.1
+TEMPLATE = app
+
+
 QT      += core gui printsupport widgets serialport multimedia multimediawidgets
 CONFIG  += console static
-
-TARGET = TTS_NEU
-TEMPLATE = app
 
 
 SOURCES += main.cpp\
@@ -19,8 +21,6 @@ SOURCES += main.cpp\
     Sensor.cpp \
     ReadSensors.cpp \
     sensordisplay.cpp \
-    Localization.cpp \
-    asa047.cpp \
     videothread.cpp
 
 HEADERS  += TTS_GUI.h \
@@ -33,8 +33,6 @@ HEADERS  += TTS_GUI.h \
     Sensor.h \
     ReadSensors.h \
     sensordisplay.h \
-    Localization.h \
-    asa047.hpp \
     videothread.h
 
 FORMS    += \
