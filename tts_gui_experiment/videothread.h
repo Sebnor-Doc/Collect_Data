@@ -3,8 +3,6 @@
 
 // Thread
 #include <QMutex>
-#include <QThread>
-#include <QWaitCondition>
 
 // OpenCV
 #include<opencv2/core/core.hpp>
@@ -16,19 +14,16 @@ using namespace cv;
 #include <QImage>
 
 
-class VideoThread: public QThread
+class VideoThread: public QObject
 {
     Q_OBJECT
 
 private:
     // General
     VideoCapture camera;
-    VideoWriter *video;
-    bool saveVideo;
-    bool showVideo;
+    VideoWriter video;
 
     // Video data
-    QString filename;
     Mat videoMat;
     QImage videoImg;
 
@@ -38,39 +33,32 @@ private:
     int frame_rate;
 
     // Thread
-    bool stop;
+    bool stopExec;
     QMutex mutex;
-    QWaitCondition condition;
 
 
- public:
-    VideoThread(QObject *parent = 0);
+public:
+    VideoThread();
     ~VideoThread();
 
-    void Play();
-    void Stop();
+public slots:
+    void process();
+    void saveVideo(bool save);
+    void displayVideo(bool disp);
+    void setFilename(QString filename);
+    void stop();
 
-    void setVideoName(QString filename);
-
-    void startSavingVideo();
-    void stopSavingVideo();
-
-    void startEmittingVideo();
-    void stopEmittingVideo();
-
+private slots:
+    void savingVideo(Mat& frame);
+    void emitVideo(Mat& frame);
 
  signals:
+    void newFrame(Mat& frame);
     void processedImage(const QPixmap &image);
-
+    void finished();
 
  private:
-    void setCamera();
-    void processVideo();
-    bool isStopped() const;
-
-
- protected:
-    void run();
+    bool setCamera();
 
 };
 #endif // VIDEOVideoThread_H

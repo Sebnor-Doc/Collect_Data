@@ -215,5 +215,12 @@ void ReadSensors::stopSaving()
 /* Other */
 ReadSensors::~ReadSensors()
 {
+    mutex.lock();
+
+    if (sensorOutputFile.isOpen()) {
+        sensorOutputFile.close();
+    }
+
     serialport->close();
+    mutex.unlock();
 }

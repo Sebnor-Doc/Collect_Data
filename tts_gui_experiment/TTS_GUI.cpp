@@ -11,7 +11,7 @@
 #include <QUrl>
 #include <QAudioEncoderSettings>
 #include <QCloseEvent>
-
+#include <QThread>
 #include <QCameraInfo>
 
 #include <boost/lexical_cast.hpp>
@@ -38,16 +38,26 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     rs->start(QThread::HighestPriority);
 
     // Intialize video
-    video = new VideoThread(this);
-    connect(video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)) );
+    QThread *videoThread = new QThread(this);
+    video.moveToThread(videoThread);
+
+    connect(videoThread, SIGNAL(started()), &video, SLOT(process()));
+    connect(this, SIGNAL(save(bool)), &video, SLOT(saveVideo(bool)), Qt::DirectConnection);
+    connect(ui->showVideoCheckBox, SIGNAL(clicked(bool)), &video, SLOT(displayVideo(bool)), Qt::DirectConnection);
+    connect(this, SIGNAL(stopRecording()), &video, SLOT(stop()), Qt::DirectConnection);
+    connect(this, SIGNAL(fileName(QString)), &video, SLOT(setFilename(QString)), Qt::DirectConnection);
+    connect(&video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)), Qt::DirectConnection);
+
+    connect(&video, SIGNAL(finished()), videoThread, SLOT(quit()));
+    connect(&video, SIGNAL(finished()), &video, SLOT(deleteLater()));
+    connect(videoThread, SIGNAL(finished()), videoThread, SLOT(deleteLater()));
+
+    videoThread->start(QThread::HighPriority);
+    ui->showVideoCheckBox->setChecked(true);
+    emit ui->showVideoCheckBox->clicked(true);
 
     // Initialize Audio
     setAudio();
-
-    // Start video
-    video->Play();
-    ui->showVideoCheckBox->setChecked(true);
-    on_showVideoCheckBox_clicked();
 }
 
 
@@ -347,6 +357,7 @@ void MainWindow::on_startStopTrialButton_toggled(bool checked)
 void MainWindow::beginTrial(){
     // Update output file paths
     setFilePath();
+    emit fileName(experiment_output_path);
 
     //Color the boxes
     QString formatUtterance = QString("<font size=\"34\" color=\"red\">%1</font>")
@@ -355,13 +366,9 @@ void MainWindow::beginTrial(){
 
     // Start data recording
     rs->setFileLocation(experiment_output_path + "_raw_sensor.txt"); // Magnetic stream
+
+    emit save(true);
     rs->startSaving();
-
-    video->setVideoName(experiment_output_path + "_video.avi");
-    video->startSavingVideo();
-
-//    loca->setFileLocation(experiment_output_path + "_localization.txt");
-//    loca->Play();
 
     audio1->stop();
     audio2->stop();
@@ -373,10 +380,9 @@ void MainWindow::beginTrial(){
 
 void MainWindow::stopTrial(){
 
-//    loca->Stop();
-    rs->stopSaving();
+    emit save(false);
 
-    video->stopSavingVideo();
+    rs->stopSaving();
 
     audio1->stop();
     audio2->stop();
@@ -443,17 +449,6 @@ void MainWindow::sensorDisplayClosed(){
     ui->showMagButton->setChecked(false);
 }
 
-
-/* Video player */
-void MainWindow::on_showVideoCheckBox_clicked()
-{
-    if (ui->showVideoCheckBox->isChecked()) {
-        video->startEmittingVideo();
-    }
-    else {
-        video->stopEmittingVideo();
-    }
-}
 
 
 /* Audio */
@@ -532,12 +527,7 @@ void MainWindow::on_trialBox_currentIndexChanged(int index)
 {
     // Reset class box
     ui->classBox->setCurrentIndex(0);
-
-    // If only 1 class, need to manually call event handler
-    // as current index does not change (stay at 0)
-    if(classUtter.size() == 1) {
-        on_classBox_currentIndexChanged(0);
-    }
+    on_classBox_currentIndexChanged(0);
 }
 
 void MainWindow::on_classBox_currentIndexChanged(int index)
@@ -558,12 +548,7 @@ void MainWindow::on_classBox_currentIndexChanged(int index)
 
     // Reset drop-down list to first item
     ui->utteranceBox->setCurrentIndex(0);
-
-    // If only 1 utterance, need to manually call event handler
-    // as current index does not change (stay at 0)
-    if (utter.at(index)->size() == 1) {
-        on_utteranceBox_currentIndexChanged(0);
-    }
+    on_utteranceBox_currentIndexChanged(0);
 }
 
 void MainWindow::on_utteranceBox_currentIndexChanged(int index)
@@ -633,6 +618,8 @@ CImg<double> MainWindow::loadMatrix(string myString)
 /* Closing methods */
 void MainWindow::closeEvent(QCloseEvent *event){
 
+    emit stopRecording();
+
     // Terminate Read sensor
     rs->stopSaving();
     rs->stopRecording();
@@ -644,15 +631,6 @@ void MainWindow::closeEvent(QCloseEvent *event){
 
     if (audio2) {
        audio2->stop();
-    }
-
-    // Close Display sensor UI
-    if (sensorUi) {
-        sensorUi->close();
-    }
-
-    if (video){
-        video->Stop();
     }
 
     // Closing procedures

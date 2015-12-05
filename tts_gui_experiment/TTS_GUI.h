@@ -44,7 +44,7 @@ private:
     Magnet magnet;
     QVector<Sensor*> sensors;
     ReadSensors *rs;
-    VideoThread *video;
+    VideoThread video;
 
     // Audio
     QAudioRecorder *audio1;
@@ -80,7 +80,6 @@ public:
 private slots:
     void on_configButton_clicked();
     void on_measureEMFButton_clicked();
-    void on_showVideoCheckBox_clicked();
     void on_startStopTrialButton_toggled(bool checked);
     void on_classBox_currentIndexChanged(int index);
     void on_utteranceBox_currentIndexChanged(int index);
@@ -102,6 +101,16 @@ private:
     void setFilePath();
     CImg<double> loadVector(string myString);
     CImg<double> loadMatrix(string myString);
+
+/* ****************************
+ *              Signals
+ * *************************** */
+signals:
+    void save(bool);
+    void dispVideo(bool);
+    void fileName(QString);
+    void stopRecording();
+
 };
 
 #endif // TTS_GUI_H
