@@ -44,13 +44,11 @@ private:
     static const int PACKET_TAIL_LENGTH = 4;
 };
 
-
 class ReadSensors: public QObject
 {
     Q_OBJECT
 
 private:
-
     MagReadWorker readMagSens;
     MagData magPacket;
 
@@ -68,18 +66,20 @@ private:
 
 signals:
     void stopReading();
+    void lastPacket(MagData);
 
 public slots:
     void process();
     void setSubFilename(QString subFileRoot);
     void saveMag(bool save);
+    void getLastPacket();
     void stop();
 
 private slots:
-    void processPacket(MagData packet);
+    void updateLastPacket(MagData packet);
+    void savingMag(MagData packet);
 
 public:
-    MagData getLastPacket();
     void setFilename(QString filename);
 
 };

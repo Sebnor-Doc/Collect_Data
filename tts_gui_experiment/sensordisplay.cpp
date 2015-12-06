@@ -6,7 +6,6 @@
 SensorDisplay::SensorDisplay(ReadSensors *rs, QWidget *parent) : QDialog(parent), ui(new Ui::SensorDisplay)
 {
     this->rs = rs;
-    rs->beginRecording();
 
     ui->setupUi(this);
     this->setWindowState(Qt::WindowMaximized);
@@ -43,10 +42,11 @@ SensorDisplay::SensorDisplay(ReadSensors *rs, QWidget *parent) : QDialog(parent)
     startTime = -1;
 
     // Manage connection
-    connect(magTimer, SIGNAL(timeout()), this, SLOT(updateMagPlot()));
+    connect(magTimer, SIGNAL(timeout()), rs, SLOT(getLastPacket()));
+    connect(rs, SIGNAL(lastPacket(MagData)), this, SLOT(updateMagPlot(MagData)));
 }
 
-void SensorDisplay::updateMagPlot() {
+void SensorDisplay::updateMagPlot(MagData data) {
 
     // Set time stamp (in sec.)
     double time;
@@ -60,7 +60,7 @@ void SensorDisplay::updateMagPlot() {
     }
 
 
-    MagData data = rs->getLastPacket();
+//    MagData data = rs->getLastPacket();
 
    for (int i = 0; i < NUM_OF_SENSORS; i++)
    {
