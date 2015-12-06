@@ -14,51 +14,73 @@
 #include <boost/thread.hpp>
 
 
-class ReadSensors: public QThread
+class MagReadWorker: public QThread
 {
     Q_OBJECT
 
+public:
+    MagReadWorker();
+    void run();
+    void setSerialPort(boost::asio::serial_port *sp);
+
+public slots:
+    void stop();
+
 private:
-    boost::asio::io_service io;
-    boost::asio::serial_port *serialport;
-    MagData magPacket;
+    void readPacket();
 
-    // Thread status
-    bool stop;
-    bool save;
+signals:
+    void packetRead(MagData packet);
+
+private:
+    boost::asio::serial_port *sp;
+    bool stopExec;
     QMutex mutex;
-
-    // Saving
-    QString filename;
-    QFile sensorOutputFile;
-    QTextStream *sensorOutputFile_stream;
 
     // Mojo parameters
     static const short PACKET_HEADER = 0xAA;
     static const short PACKET_TAIL = 0xBB;
     static const int PACKET_HEADER_LENGTH = 4;
     static const int PACKET_TAIL_LENGTH = 4;
+};
+
+
+class ReadSensors: public QObject
+{
+    Q_OBJECT
+
+private:
+
+    MagReadWorker readMagSens;
+    MagData magPacket;
+
+    // Serial Port
+    boost::asio::io_service io;
+    boost::asio::serial_port *serialport;
+
+    // Saving
+    QFile sensorOutputFile;
+    QTextStream outputFileStream;
+
+    // Others
     int numLostPackets;
+    QMutex mutex;
 
 signals:
-    void packetRead(MagData packet);
-    void packetSaved(MagData packet);
+    void stopReading();
+
+public slots:
+    void process();
+    void setSubFilename(QString subFileRoot);
+    void saveMag(bool save);
+    void stop();
 
 private slots:
     void processPacket(MagData packet);
 
 public:
-    ReadSensors(QObject *parent = 0);
-    ~ReadSensors();
-    void run();
-    void stopRecording();
-    void beginRecording();
     MagData getLastPacket();
-    void setFileLocation(QString filename);
-    void startSaving();
-    void stopSaving();
+    void setFilename(QString filename);
 
-private:
-    void readPacket();
 };
 #endif // ReadSensors_H

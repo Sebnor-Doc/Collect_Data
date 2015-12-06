@@ -9,11 +9,8 @@
 #include <QSerialPortInfo>
 #include <QApplication>
 
-ReadSensors::ReadSensors(QObject *parent): QThread(parent)
-{
-    // Set thread state
-    stop = false;
-    save = false;
+
+void ReadSensors::process(){
 
     // Connect to Mojo by identifying its COM Port
     QSerialPortInfo mojoComPort;
@@ -43,28 +40,109 @@ ReadSensors::ReadSensors(QObject *parent): QThread(parent)
     }
     else {
         qDebug() << "ERROR: NO COM PORT ASSOCIATED TO MOJO IS FOUND!!";
-        QMessageBox::critical((QWidget*)parent, "Mojo Not Found", "ERROR: NO COM PORT ASSOCIATED TO MOJO IS FOUND!!", QMessageBox::Ok, QMessageBox::NoButton);
+//        QMessageBox::critical((QWidget*)parent, "Mojo Not Found", "ERROR: NO COM PORT ASSOCIATED TO MOJO IS FOUND!!", QMessageBox::Ok, QMessageBox::NoButton);
+        QMessageBox msgBox;
+        msgBox.setText("ERROR: NO COM PORT ASSOCIATED TO MOJO IS FOUND!!");
+        msgBox.exec();
     }
 
-    // manage connection
-    connect(this, SIGNAL(packetRead(MagData)), this, SLOT(processPacket(MagData)));
+    // Create Mag sensor read thread
+    readMagSens.setSerialPort(serialport);
+    readMagSens.start(QThread::HighestPriority);
+    connect(this, SIGNAL(stopReading()), &readMagSens, SLOT(stop()), Qt::DirectConnection);
 }
 
-void ReadSensors::run()
+void ReadSensors::processPacket(MagData packet) {
+    mutex.lock();
+    magPacket = packet;
+
+    // Save raw magnetic information
+
+    for (int i = 0; i < packet.size(); i++) {
+        outputFileStream << packet.at(i) << " ";
+    }
+
+    outputFileStream << QDateTime::currentDateTime().toMSecsSinceEpoch() << endl;
+
+    mutex.unlock();
+}
+
+MagData ReadSensors::getLastPacket()
 {
-    numLostPackets = 0;
-
-    while (!stop) {
-        readPacket();
-    }
-
+    return magPacket;
 }
 
-/* Manage Packet */
-void ReadSensors::readPacket() {
+void ReadSensors::setFilename(QString filename)
+{
+    mutex.lock();
+    if (sensorOutputFile.isOpen()) {
+        sensorOutputFile.close();
+    }
+    sensorOutputFile.setFileName(filename);
+    mutex.unlock();
+}
+
+void ReadSensors::setSubFilename(QString subFileRoot) {
+    setFilename(subFileRoot +"_raw_sensor.txt" );
+}
+
+void ReadSensors::saveMag(bool save)
+{
+    mutex.lock();
+    if (save) {
+        outputFileStream.setDevice(&sensorOutputFile);
+        sensorOutputFile.open(QIODevice::WriteOnly | QIODevice::Text);
+        connect(&readMagSens, SIGNAL(packetRead(MagData)), this, SLOT(processPacket(MagData)));
+
+    }
+    else {
+        disconnect(&readMagSens, SIGNAL(packetRead(MagData)), this, SLOT(processPacket(MagData)));
+        sensorOutputFile.close();
+    }
+    mutex.unlock();
+}
+
+void ReadSensors::stop() {
+    emit stopReading();
+
+    mutex.lock();
+    if (sensorOutputFile.isOpen()) {
+        sensorOutputFile.close();
+    }
+
+    serialport->close();
+    mutex.unlock();
+}
+
+
+/* ************************
+ * MagReadWorker Class
+ * ************************ */
+
+MagReadWorker::MagReadWorker(): QThread() {
+    stopExec = false;
+}
+
+void MagReadWorker::run(){
 
     //Purge buffers
-    PurgeComm(serialport->native_handle(), PURGE_RXCLEAR);
+    PurgeComm(sp->native_handle(), PURGE_RXCLEAR);
+
+    while(!stopExec) {
+        readPacket();
+    }
+}
+
+void MagReadWorker::setSerialPort(boost::asio::serial_port *sp){
+    mutex.lock();
+    this->sp = sp;
+    mutex.unlock();
+}
+
+void MagReadWorker::readPacket(){
+
+//    //Purge buffers
+//    PurgeComm(sp->native_handle(), PURGE_RXCLEAR);
 
     // Initialize variables
     char streamchar;
@@ -84,7 +162,7 @@ void ReadSensors::readPacket() {
         // Identify the header from the data stream
         while(!tail_found) {
             // Read a byte from serial port
-            boost::asio::read(*serialport, boost::asio::buffer(&streamchar, 1));
+            boost::asio::read(*sp, boost::asio::buffer(&streamchar, 1));
             cur_num = streamchar & 0xFF;
 
             if (!header_found) {
@@ -121,12 +199,12 @@ void ReadSensors::readPacket() {
 
         if (packetFound) {
 
-            if(pktData[0]!= prev_packetnumber)
-            {
-                numLostPackets++;
-            }
+//            if(pktData[0]!= prev_packetnumber)
+//            {
+//                numLostPackets++;
+//            }
 
-            MagData tempPacket;
+            MagData magPacket;
 
             // Format packet data by combining 2 bytes per magnetic axis
             for (int i = NOOFBYTESINPC; i < EXPECTEDBYTES - 1; i += 2) {
@@ -135,92 +213,25 @@ void ReadSensors::readPacket() {
                 char upper = pktData[i + 1] & 0xFF;
                 short data = ((upper << 8) | (lower & 0xFF));
 
-                tempPacket.push_back(data);
+                magPacket.push_back(data);
             }
 
-            prev_packetnumber = pktData[0];
-            prev_packetnumber++;
+//            prev_packetnumber = pktData[0];
+//            prev_packetnumber++;
 
-            mutex.lock();
-            magPacket = tempPacket;
-            mutex.unlock();
+//            mutex.lock();
+//            magPacket = tempPacket;
+//            mutex.unlock();
 
             emit packetRead(magPacket);
         }
     }
+
+
 }
 
-void ReadSensors::processPacket(MagData packet) {
+void MagReadWorker::stop(){
     mutex.lock();
-
-    // Save raw magnetic information
-    if (save)
-    {
-        for (int i = 0; i < packet.size(); i++) {
-            (*sensorOutputFile_stream) << packet.at(i) << " ";
-        }
-
-        (*sensorOutputFile_stream) << QDateTime::currentDateTime().toMSecsSinceEpoch() << endl;
-
-        emit packetSaved(packet);
-    }
-
-    mutex.unlock();
-}
-
-MagData ReadSensors::getLastPacket()
-{
-    return this->magPacket;
-}
-
-
-/* Manage REcording status */
-void ReadSensors::stopRecording()
-{
-    stop = true;
-}
-
-void ReadSensors::beginRecording()
-{
-    stop = false;
-}
-
-
-/* Manage Saving */
-void ReadSensors::setFileLocation(QString filename)
-{
-    mutex.lock();
-    this->filename = filename;
-    mutex.unlock();
-}
-
-void ReadSensors::startSaving()
-{
-    mutex.lock();
-    save = true;
-    sensorOutputFile.setFileName(filename);
-    sensorOutputFile_stream = new QTextStream(&sensorOutputFile);
-    sensorOutputFile.open(QIODevice::WriteOnly | QIODevice::Text);
-    mutex.unlock();
-}
-
-void ReadSensors::stopSaving()
-{
-    mutex.lock();
-    save = false;
-    sensorOutputFile.close();
-    mutex.unlock();
-}
-
-/* Other */
-ReadSensors::~ReadSensors()
-{
-    mutex.lock();
-
-    if (sensorOutputFile.isOpen()) {
-        sensorOutputFile.close();
-    }
-
-    serialport->close();
+    stopExec = true;
     mutex.unlock();
 }

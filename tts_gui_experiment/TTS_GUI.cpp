@@ -34,25 +34,36 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     ui->measureEMFButton->setEnabled(false);
 
     // Connect to Mojo
-    rs = new ReadSensors(this);
-    rs->start(QThread::HighestPriority);
+    QThread *magThread = new QThread(this);
+    rs.moveToThread(magThread);
+
+    connect(magThread, SIGNAL(started()), &rs, SLOT(process()));
+    connect(this, SIGNAL(save(bool)), &rs, SLOT(saveMag(bool)));
+    connect(this, SIGNAL(stopRecording()), &rs, SLOT(stop()));
+    connect(this, SIGNAL(fileName(QString)), &rs, SLOT(setSubFilename(QString)));
+
+    connect(&rs, SIGNAL(stopReading()), magThread, SLOT(quit()));
+    connect(&rs, SIGNAL(stopReading()), &rs, SLOT(deleteLater()));
+    connect(magThread, SIGNAL(finished()), magThread, SLOT(deleteLater()));
+
+    magThread->start(QThread::HighestPriority);
 
     // Intialize video
     QThread *videoThread = new QThread(this);
     video.moveToThread(videoThread);
 
     connect(videoThread, SIGNAL(started()), &video, SLOT(process()));
-    connect(this, SIGNAL(save(bool)), &video, SLOT(saveVideo(bool)), Qt::DirectConnection);
-    connect(ui->showVideoCheckBox, SIGNAL(clicked(bool)), &video, SLOT(displayVideo(bool)), Qt::DirectConnection);
-    connect(this, SIGNAL(stopRecording()), &video, SLOT(stop()), Qt::DirectConnection);
-    connect(this, SIGNAL(fileName(QString)), &video, SLOT(setFilename(QString)), Qt::DirectConnection);
-    connect(&video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)), Qt::DirectConnection);
+    connect(this, SIGNAL(save(bool)), &video, SLOT(saveVideo(bool)));
+    connect(ui->showVideoCheckBox, SIGNAL(clicked(bool)), &video, SLOT(displayVideo(bool)), Qt::DirectConnection);   
+    connect(this, SIGNAL(fileName(QString)), &video, SLOT(setFilename(QString)));
+    connect(&video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)));
 
+    connect(this, SIGNAL(stopRecording()), &video, SLOT(stop()));
     connect(&video, SIGNAL(finished()), videoThread, SLOT(quit()));
     connect(&video, SIGNAL(finished()), &video, SLOT(deleteLater()));
     connect(videoThread, SIGNAL(finished()), videoThread, SLOT(deleteLater()));
 
-    videoThread->start(QThread::HighPriority);
+    videoThread->start();
     ui->showVideoCheckBox->setChecked(true);
     emit ui->showVideoCheckBox->clicked(true);
 
@@ -280,8 +291,8 @@ void MainWindow::on_measureEMFButton_clicked()
     emfFile = experiment_root + "/EMF_" + currentDateTime + ".txt";
 
     // Start saving mag data to EMF file
-    rs->setFileLocation(emfFile);
-    rs->startSaving();
+    rs.setFilename(emfFile);
+    rs.saveMag(true);
 
     // Record mag data for 1 second
     QTimer::singleShot(1000, this, SLOT(saveEMF()));
@@ -289,7 +300,7 @@ void MainWindow::on_measureEMFButton_clicked()
 
 void MainWindow::saveEMF() {
     // Stop saving and recording magnetic data
-    rs->stopSaving();
+    rs.saveMag(false);
 
     QVector<int> avgEMF(3*NUM_OF_SENSORS);
     avgEMF.fill(0);
@@ -365,10 +376,10 @@ void MainWindow::beginTrial(){
     ui->utteranceBrowser->setText(formatUtterance);
 
     // Start data recording
-    rs->setFileLocation(experiment_output_path + "_raw_sensor.txt"); // Magnetic stream
+//    rs->setFileLocation(experiment_output_path + "_raw_sensor.txt"); // Magnetic stream
 
     emit save(true);
-    rs->startSaving();
+//    rs->startSaving();
 
     audio1->stop();
     audio2->stop();
@@ -382,7 +393,7 @@ void MainWindow::stopTrial(){
 
     emit save(false);
 
-    rs->stopSaving();
+//    rs->stopSaving();
 
     audio1->stop();
     audio2->stop();
@@ -430,7 +441,7 @@ void MainWindow::on_showMagButton_toggled(bool checked)
 {
     if (checked) {
         ui->showMagButton->setText("Hide Sensors");
-        sensorUi = new SensorDisplay(rs, this);
+        sensorUi = new SensorDisplay(&rs, this);
         sensorUi->show();
         connect(sensorUi, SIGNAL(closed()), this, SLOT(sensorDisplayClosed()));
 
@@ -619,10 +630,6 @@ CImg<double> MainWindow::loadMatrix(string myString)
 void MainWindow::closeEvent(QCloseEvent *event){
 
     emit stopRecording();
-
-    // Terminate Read sensor
-    rs->stopSaving();
-    rs->stopRecording();
 
     // Terminate audio
     if (audio1) {

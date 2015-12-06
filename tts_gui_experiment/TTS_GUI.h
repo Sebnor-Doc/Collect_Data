@@ -43,7 +43,7 @@ private:
     Ui::MainWindow *ui;
     Magnet magnet;
     QVector<Sensor*> sensors;
-    ReadSensors *rs;
+    ReadSensors rs;
     VideoThread video;
 
     // Audio
