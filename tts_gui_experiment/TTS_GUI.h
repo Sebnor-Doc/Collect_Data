@@ -56,6 +56,7 @@ private:
     QList<QString> classUtter;
     QList<QStringList*> utter;
     int numTrials;
+    bool sessionCompleted;
 
     // Output File locations
     QString experiment_root;

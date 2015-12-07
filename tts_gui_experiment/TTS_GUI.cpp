@@ -23,6 +23,9 @@ using boost::tokenizer;
 // Constructor
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWindow)
 {   
+    // General initialization
+    sessionCompleted = false;
+
     //Display GUI
     ui->setupUi(this);
     this->setWindowState(Qt::WindowMaximized);
@@ -224,11 +227,6 @@ void MainWindow::setupExperiment()
         ui->trialBox->addItem(QString::number(trial) + " / " + QString::number(numTrials));
     }
 
-
-    // Update utterance display
-//    ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex())
-//                                  + QString("</font>"));
-
     // Set instance variables for folder/file paths
     setFilePath();
 }
@@ -393,13 +391,11 @@ void MainWindow::stopTrial(){
 
     emit save(false);
 
-//    rs->stopSaving();
-
     audio1->stop();
     audio2->stop();
 
     // Update next trial
-    bool sessionCompleted = false;
+    sessionCompleted = false;
     int classIdx = ui->classBox->currentIndex();
     int utterIdx = ui->utteranceBox->currentIndex();
     int trialIdx = ui->trialBox->currentIndex();
@@ -567,8 +563,10 @@ void MainWindow::on_utteranceBox_currentIndexChanged(int index)
     ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(ui->classBox->currentIndex())->at(index) + QString("</font>"));
 
     // Enable Start/Stop button if session was completed
-    ui->startStopTrialButton->setEnabled(true);
-    ui->startStopTrialButton->setText("Start");
+    if (sessionCompleted) {
+        ui->startStopTrialButton->setEnabled(true);
+        ui->startStopTrialButton->setText("Start");
+    }
 }
 
 
