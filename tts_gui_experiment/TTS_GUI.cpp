@@ -124,10 +124,10 @@ void MainWindow::loadConfig() {
     // Set Experiment file location
     QString experimentFile = QString::fromStdString(nodeConfig.child("experiment").child_value()) + ".txt";
     QString experimentPath = QCoreApplication::applicationDirPath() + "/Experiment/" + experimentFile;
-    ui->expFileEdit->setText(experimentPath);
+    ui->expFileEdit->setPlainText(experimentPath);
 
     // Set others
-    ui->subPathEdit->setText(QString::fromStdString(nodeConfig.child("data").child_value()));
+    ui->subPathEdit->setPlainText(QString::fromStdString(nodeConfig.child("data").child_value()));
     ui->subNbEdit->setText("1");
 }
 
@@ -170,10 +170,10 @@ void MainWindow::loadCalibration(QString calibFilename) {
 void MainWindow::setupExperiment()
 {
     // Set utter, utterClass and numTrials vectors
-    loadExperimentFile(ui->expFileEdit->text());
+    loadExperimentFile(ui->expFileEdit->toPlainText());
 
     // Create folder structure to house experimental data
-    experiment_root = ui->subPathEdit->text() + "/Sub" + ui->subNbEdit->text();
+    experiment_root = ui->subPathEdit->toPlainText() + "/Sub" + ui->subNbEdit->text();
 
     if (!QDir().mkdir(experiment_root)) {
         qDebug() << "Subject root folder already exists: " << experiment_root;
