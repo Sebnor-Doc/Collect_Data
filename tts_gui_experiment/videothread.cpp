@@ -8,8 +8,8 @@
 void VideoThread::process()
 {
     connect(&readThread, SIGNAL(cameraInfo(int, int)), this, SLOT(setCameraInfo(int, int)));
-    connect(this, SIGNAL(finished()), &readThread, SLOT(stop()));
-    connect(this, SIGNAL(finished()), this, SLOT(deleteLater()));
+    connect(this, SIGNAL(stopped()), &readThread, SLOT(stop()), Qt::DirectConnection);
+//    connect(this, SIGNAL(stopped()), this, SLOT(deleteLater()));
 
     readThread.start(QThread::HighPriority);
 }
@@ -74,7 +74,7 @@ void VideoThread::stop()
     saveVideo(false);
     mutex.unlock();
 
-    emit finished();
+    emit stopped();
 }
 
 void VideoThread::setFilename(QString filename)
@@ -87,6 +87,9 @@ void VideoThread::setFilename(QString filename)
     video.open(formatFilename.toStdString(), CV_FOURCC('M','J','P','G'), frame_rate, Size(frame_width,frame_height), true);
 }
 
+VideoThread::~VideoThread(){
+    emit finished();
+}
 
 /* *****************
  * VideoReadWorker
@@ -129,20 +132,24 @@ void VideoReadWorker::run(){
 
     // Read video frames from camera
     while(!stopExec) {
-
+        mutex.lock();
         bool readSuccessful = camera.read(frame);
 
         if (readSuccessful) {
             emit newFrame(&frame);
         }
+        mutex.unlock();
     }
 
     // Closing procedure
     camera.release();
+    qDebug() << "\n -- Camera Released\n";
 }
 
 void VideoReadWorker::stop(){
+    mutex.lock();
     stopExec = true;
+    mutex.unlock();
 }
 
 VideoReadWorker::~VideoReadWorker(){

@@ -38,10 +38,10 @@ private:
     QMutex mutex;
 
     // Mojo parameters
-    static const short PACKET_HEADER = 0xAA;
-    static const short PACKET_TAIL = 0xBB;
-    static const int PACKET_HEADER_LENGTH = 4;
-    static const int PACKET_TAIL_LENGTH = 4;
+    static const short PACKET_HEADER        = 0xAA;
+    static const short PACKET_TAIL          = 0xBB;
+    static const int PACKET_HEADER_LENGTH   = 4;
+    static const int PACKET_TAIL_LENGTH     = 4;
 };
 
 class ReadSensors: public QObject
@@ -67,6 +67,7 @@ private:
 signals:
     void stopReading();
     void lastPacket(MagData);
+    void finished();
 
 public slots:
     void process();
@@ -80,6 +81,7 @@ private slots:
     void savingMag(MagData packet);
 
 public:
+    ~ReadSensors();
     void setFilename(QString filename);
 
 };

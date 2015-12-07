@@ -39,11 +39,12 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
 
     connect(magThread, SIGNAL(started()), &rs, SLOT(process()));
     connect(this, SIGNAL(save(bool)), &rs, SLOT(saveMag(bool)));
-    connect(this, SIGNAL(stopRecording()), &rs, SLOT(stop()));
     connect(this, SIGNAL(fileName(QString)), &rs, SLOT(setSubFilename(QString)));
 
-    connect(&rs, SIGNAL(stopReading()), magThread, SLOT(quit()));
-    connect(&rs, SIGNAL(stopReading()), &rs, SLOT(deleteLater()));
+    connect(this, SIGNAL(stopRecording()), &rs, SLOT(stop()));
+    connect(&rs, SIGNAL(finished()), magThread, SLOT(quit()));
+//    connect(&rs, SIGNAL(stopReading()), magThread, SLOT(quit()));
+//    connect(&rs, SIGNAL(stopReading()), &rs, SLOT(deleteLater()));
     connect(magThread, SIGNAL(finished()), magThread, SLOT(deleteLater()));
 
     magThread->start(QThread::HighestPriority);
@@ -60,7 +61,6 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
 
     connect(this, SIGNAL(stopRecording()), &video, SLOT(stop()));
     connect(&video, SIGNAL(finished()), videoThread, SLOT(quit()));
-    connect(&video, SIGNAL(finished()), &video, SLOT(deleteLater()));
     connect(videoThread, SIGNAL(finished()), videoThread, SLOT(deleteLater()));
 
     videoThread->start();

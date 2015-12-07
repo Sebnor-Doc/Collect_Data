@@ -26,6 +26,7 @@ private:
     VideoCapture camera;
     bool stopExec;
     Mat frame;
+    QMutex mutex;
 
 public:
     VideoReadWorker();
@@ -74,7 +75,11 @@ private slots:
 
  signals:
     void processedImage(const QPixmap &image);
+    void stopped();
     void finished();
+
+public:
+    ~VideoThread();
 
 };
 

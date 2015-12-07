@@ -3,9 +3,7 @@
 #include <QUrl>
 #include <QDebug>
 #include <QDateTime>
-
 #include <QMessageBox>
-
 #include <QSerialPortInfo>
 #include <QApplication>
 
@@ -68,7 +66,10 @@ void ReadSensors::saveMag(bool save)
     }
     else {
         disconnect(&readMagSens, SIGNAL(packetRead(MagData)), this, SLOT(savingMag(MagData)));
-        sensorOutputFile.close();
+
+        if (sensorOutputFile.isOpen()) {
+            sensorOutputFile.close();
+        }
     }
     mutex.unlock();
 }
@@ -117,15 +118,13 @@ void ReadSensors::setSubFilename(QString subFileRoot) {
 }
 
 void ReadSensors::stop() {
+
+    saveMag(false);
     emit stopReading();
+}
 
-    mutex.lock();
-    if (sensorOutputFile.isOpen()) {
-        sensorOutputFile.close();
-    }
-
-    serialport->close();
-    mutex.unlock();
+ReadSensors::~ReadSensors(){
+    emit finished();
 }
 
 
@@ -137,6 +136,12 @@ MagReadWorker::MagReadWorker(): QThread() {
     stopExec = false;
 }
 
+void MagReadWorker::setSerialPort(boost::asio::serial_port *sp){
+    mutex.lock();
+    this->sp = sp;
+    mutex.unlock();
+}
+
 void MagReadWorker::run(){
 
     //Purge buffers
@@ -145,12 +150,9 @@ void MagReadWorker::run(){
     while(!stopExec) {
         readPacket();
     }
-}
 
-void MagReadWorker::setSerialPort(boost::asio::serial_port *sp){
-    mutex.lock();
-    this->sp = sp;
-    mutex.unlock();
+    // Closing procedures
+    sp->close();
 }
 
 void MagReadWorker::readPacket(){
