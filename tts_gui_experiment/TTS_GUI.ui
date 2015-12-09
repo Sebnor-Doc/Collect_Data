@@ -292,6 +292,14 @@ p, li { white-space: pre-wrap; }
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="font">
+         <font>
+          <pointsize>16</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+          <underline>false</underline>
+         </font>
+        </property>
         <property name="text">
          <string>Show
 Sensors</string>
