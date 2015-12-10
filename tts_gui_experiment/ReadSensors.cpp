@@ -61,8 +61,8 @@ void ReadSensors::saveMag(bool save)
     if (save) {
         outputFileStream.setDevice(&sensorOutputFile);
         sensorOutputFile.open(QIODevice::WriteOnly | QIODevice::Text);
+        baseTime = -1;
         connect(&readMagSens, SIGNAL(packetRead(MagData)), this, SLOT(savingMag(MagData)));
-
     }
     else {
         disconnect(&readMagSens, SIGNAL(packetRead(MagData)), this, SLOT(savingMag(MagData)));
@@ -74,23 +74,28 @@ void ReadSensors::saveMag(bool save)
     mutex.unlock();
 }
 
-void ReadSensors::savingMag(MagData packet) {
+void ReadSensors::savingMag(MagData magData) {
     mutex.lock();
 
-    // Save raw magnetic information
-    for (int i = 0; i < packet.size(); i++) {
-        outputFileStream << packet.at(i) << " ";
+    if(baseTime == -1) {
+        baseTime = magData.time;
     }
 
-    outputFileStream << QDateTime::currentDateTime().toMSecsSinceEpoch() << endl;
+    // Save raw magnetic information
+    for (int i = 0; i < magData.packet.size(); i++) {
+        outputFileStream << magData.packet.at(i) << " ";
+    }
+
+    qint64 relativeTime = magData.time - baseTime;
+    outputFileStream << relativeTime << " " << magData.id << endl;
 
     mutex.unlock();
 }
 
-void ReadSensors::updateLastPacket(MagData packet)
+void ReadSensors::updateLastPacket(MagData magData)
 {
     mutex.lock();
-    magPacket = packet;
+    magPacket = magData;
     mutex.unlock();
 }
 
@@ -157,13 +162,9 @@ void MagReadWorker::run(){
 
 void MagReadWorker::readPacket(){
 
-//    //Purge buffers
-//    PurgeComm(sp->native_handle(), PURGE_RXCLEAR);
-
     // Initialize variables
     char streamchar;
     short cur_num;
-    int prev_packetnumber = 0;
     bool packetFound = false;
 
     // Get a packet
@@ -191,7 +192,6 @@ void MagReadWorker::readPacket(){
                     header_count = 0;
                 }
             }
-
             else if (!tail_found) {
                  pktData.push_back(cur_num);
 
@@ -213,14 +213,11 @@ void MagReadWorker::readPacket(){
 
         packetFound = (pktData.size() == EXPECTEDBYTES);
 
-        if (packetFound) {
-
-//            if(pktData[0]!= prev_packetnumber)
-//            {
-//                numLostPackets++;
-//            }
-
+        if (packetFound) {         
+            // Create new instance of a packet
             MagData magPacket;
+            magPacket.time = QDateTime::currentMSecsSinceEpoch();
+            magPacket.id = pktData[0];
 
             // Format packet data by combining 2 bytes per magnetic axis
             for (int i = NOOFBYTESINPC; i < EXPECTEDBYTES - 1; i += 2) {
@@ -229,20 +226,13 @@ void MagReadWorker::readPacket(){
                 char upper = pktData[i + 1] & 0xFF;
                 short data = ((upper << 8) | (lower & 0xFF));
 
-                magPacket.push_back(data);
+                magPacket.packet.push_back(data);
             }
 
-//            prev_packetnumber = pktData[0];
-//            prev_packetnumber++;
-
-//            mutex.lock();
-//            magPacket = tempPacket;
-//            mutex.unlock();
-
+            // Emit a signal with final read packet
             emit packetRead(magPacket);
         }
     }
-
 
 }
 

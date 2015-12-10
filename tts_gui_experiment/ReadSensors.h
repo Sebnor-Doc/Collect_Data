@@ -51,6 +51,7 @@ class ReadSensors: public QObject
 private:
     MagReadWorker readMagSens;
     MagData magPacket;
+    qint64 baseTime;
 
     // Serial Port
     boost::asio::io_service io;
@@ -77,8 +78,8 @@ public slots:
     void stop();
 
 private slots:
-    void updateLastPacket(MagData packet);
-    void savingMag(MagData packet);
+    void updateLastPacket(MagData magData);
+    void savingMag(MagData magData);
 
 public:
     ~ReadSensors();

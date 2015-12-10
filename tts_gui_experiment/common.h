@@ -2,6 +2,7 @@
 #define COMMON_H
 
 #include <QObject>
+#include <QVector>
 
 // System characteristics
 const int BAUD_RATE = 500000;
@@ -14,7 +15,11 @@ const int EXPECTEDBYTES = 6 * NUM_OF_SENSORS + NOOFBYTESINPC;
 
 
 // Typedef for Magnetic data
-typedef QVector<short> MagData;
+struct MagData{
+    QVector<short> packet;
+    qint64 time;
+    quint8 id;
+};
 const int dontcare = qRegisterMetaType<MagData>("MagData"); // Needed for Signal/Slot connections
 
 
