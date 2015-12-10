@@ -9,14 +9,13 @@ VERSION = 1.1
 TEMPLATE = app
 
 
-QT      += core gui printsupport widgets serialport multimedia multimediawidgets
+QT      += core gui printsupport widgets serialport multimedia multimediawidgets xml
 CONFIG  += console static
 
 
 SOURCES += main.cpp\
         TTS_GUI.cpp \
     qcustomplot.cpp \
-    pugixml.cpp \
     Magnet.cpp \
     Sensor.cpp \
     ReadSensors.cpp \
@@ -26,8 +25,6 @@ SOURCES += main.cpp\
 HEADERS  += TTS_GUI.h \
     qcustomplot.h \
     common.h \
-    pugixml.hpp \
-    pugiconfig.hpp \
     CImg.h \
     Magnet.h \
     Sensor.h \

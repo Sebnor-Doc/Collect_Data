@@ -2,7 +2,6 @@
 #include "TTS_GUI.h"
 #include <QFileInfo>
 #include <QSerialPortInfo>
-#include <pugixml.hpp>
 #include <QDir>
 #include <QDateTime>
 #include <QDebug>
@@ -13,6 +12,7 @@
 #include <QCloseEvent>
 #include <QThread>
 #include <QCameraInfo>
+#include <QtXml>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
@@ -46,8 +46,6 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
 
     connect(this, SIGNAL(stopRecording()), &rs, SLOT(stop()));
     connect(&rs, SIGNAL(finished()), magThread, SLOT(quit()));
-//    connect(&rs, SIGNAL(stopReading()), magThread, SLOT(quit()));
-//    connect(&rs, SIGNAL(stopReading()), &rs, SLOT(deleteLater()));
     connect(magThread, SIGNAL(finished()), magThread, SLOT(deleteLater()));
 
     magThread->start(QThread::HighestPriority);
@@ -92,17 +90,32 @@ void MainWindow::on_configButton_clicked()
 
 void MainWindow::loadConfig() {
     // The config file should be in the same folder than executable
-    QString configFile = QCoreApplication::applicationDirPath() + "/Config.xml";
+    QString configFileLoc = QCoreApplication::applicationDirPath() + "/Config.xml";
+    QFile configFile(configFileLoc);
 
-    // Create the root of the tree
-    pugi::xml_document config;
-    config.load_file(configFile.toStdString().c_str());
+    if (!configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString title = "Config.xml not found";
+        QString msg = "Config.xml cannot be found.\nVerify if the file is in same directory than the executable file of this porgram.";
+        QMessageBox::critical(this, title, msg);
+    }
 
-    // Create a child node from "config"
-    pugi::xml_node nodeConfig = config.child("config");
+    // Load the XML content as a DOM tree
+    QDomDocument configXml;
+    bool configLoaded = configXml.setContent(&configFile);
+    configFile.close();
 
-    // Set system serial number from index
-    int serialIdx = boost::lexical_cast<int>(nodeConfig.child("serialNum").child_value());
+    if (!configLoaded){
+        QString title = "Config.xml corrupted";
+        QString msg = "Config.xml cannot be loaded.\nIt may probably be corrupted.\nReplace it with a properly formatted one";
+        QMessageBox::critical(this, title, msg);
+    }
+
+    // Read content from DOM Tree
+    QDomElement root = configXml.firstChildElement();
+
+    // Set Serial Number of TTS
+    QDomElement serialNumElt = root.firstChildElement("serialNum");
+    int serialIdx = serialNumElt.text().toInt();
 
     if ( (serialIdx > 0) && (serialIdx < ui->serialNumBox->count()) ) {
         ui->serialNumBox->setCurrentIndex(serialIdx);
@@ -112,7 +125,8 @@ void MainWindow::loadConfig() {
     }
 
     // Set magnet type from index
-    int magnetIdx = boost::lexical_cast<int>(nodeConfig.child("magnet").child_value());
+    QDomElement magnetIdxElt = root.firstChildElement("magnet");
+    int magnetIdx = magnetIdxElt.text().toInt();
 
     if ( (magnetIdx > 0) && (magnetIdx < ui->magnetTypeBox->count()) ) {
         ui->magnetTypeBox->setCurrentIndex(magnetIdx);
@@ -122,48 +136,95 @@ void MainWindow::loadConfig() {
     }
 
     // Set Experiment file location
-    QString experimentFile = QString::fromStdString(nodeConfig.child("experiment").child_value()) + ".txt";
+    QDomElement experimentElt = root.firstChildElement("experiment");
+    QString experimentFile = experimentElt.text() + ".txt";
     QString experimentPath = QCoreApplication::applicationDirPath() + "/Experiment/" + experimentFile;
     ui->expFileEdit->setPlainText(experimentPath);
 
     // Set others
-    ui->subPathEdit->setPlainText(QString::fromStdString(nodeConfig.child("data").child_value()));
+    ui->subPathEdit->setPlainText(root.firstChildElement("data").text());
     ui->subNbEdit->setText("1");
 }
 
 void MainWindow::loadCalibration(QString calibFilename) {
 
     QString calibPath = QCoreApplication::applicationDirPath() + "/Calibration/" + calibFilename;
+    QFile calibFile(calibPath);
 
-    // Create the root of the tree
-    pugi::xml_document doc;
-    doc.load_file(calibPath.toStdString().c_str());
+    if (!calibFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString title = "Calibration file not found";
+        QString msg = calibPath + " cannot be found.\nVerify the selected TTS serial number.";
+        QMessageBox::critical(this, title, msg);
+    }
 
-    // Create a child node from "calibration"
-    pugi::xml_node nodeCalibration = doc.child("calibration");
+    // Load the XML content as a DOM tree
+    QDomDocument calibXml;
+    bool calibLoaded = calibXml.setContent(&calibFile);
+    calibFile.close();
 
-    // Set Magnet's instance variables to data from calibration file
-    pugi::xml_node nodeMagnet = nodeCalibration.child("magnet");
-    magnet.diameter(boost::lexical_cast<double>(nodeMagnet.child("diameter").child_value()));
-    magnet.length(boost::lexical_cast<double>(nodeMagnet.child("length").child_value()));
-    magnet.Br(boost::lexical_cast<double>(nodeMagnet.child("Br").child_value()));
-    magnet.Bt(boost::lexical_cast<double>(nodeMagnet.child("Bt").child_value()));
+    if (!calibLoaded){
+        QString title = "Calibration file corrupted";
+        QString msg = calibPath + " cannot be loaded.\nIt may probably be corrupted.\nReplace it with a properly formatted one";
+        QMessageBox::critical(this, title, msg);
+    }
+
+    // Read content from DOM Tree
+    QDomElement root = calibXml.firstChildElement();
+
+    // Set Magnet properties
+    QDomElement magnetElt = root.firstChildElement("magnet");
+    magnet.diameter(magnetElt.firstChildElement("diameter").text().toDouble());
+    magnet.length(magnetElt.firstChildElement("length").text().toDouble());
+    magnet.Br(magnetElt.firstChildElement("Br").text().toDouble());
+    magnet.Bt(magnetElt.firstChildElement("Bt").text().toDouble());
+
 
     // Instantiate Sensor objects and set their instance variables (id, position , gain, ...)
-    int i = 0;
-    for (pugi::xml_node nodeSensor = nodeCalibration.child("sensor"); nodeSensor; nodeSensor = nodeSensor.next_sibling("sensor"))
+    QDomNodeList sensorNodes = root.elementsByTagName("sensor");
+    for (int i = 0; i < sensorNodes.size(); i++)
     {
+        QDomElement sensorElt = sensorNodes.at(i).toElement();
         Sensor *newSensor = new Sensor();
-        newSensor->id = nodeSensor.attribute("id").as_uint();
-        newSensor->position(loadVector(nodeSensor.child("position").child_value()));
-        newSensor->EMF(loadVector(nodeSensor.child("EMF").child_value()));
-        newSensor->offset(loadVector(nodeSensor.child("offset").child_value()));
-        newSensor->gain(loadMatrix(nodeSensor.child("gain").child_value()));
-        newSensor->angles(loadVector(nodeSensor.child("angles").child_value()));
+
+        newSensor->id = sensorElt.attribute("id").toUInt();
+        newSensor->position(loadVector(sensorElt.firstChildElement("position").text().toStdString()));
+        newSensor->EMF(loadVector(sensorElt.firstChildElement("EMF").text().toStdString()));
+        newSensor->offset(loadVector(sensorElt.firstChildElement("offset").text().toStdString()));
+        newSensor->gain(loadMatrix(sensorElt.firstChildElement("gain").text().toStdString()));
+        newSensor->angles(loadVector(sensorElt.firstChildElement("angles").text().toStdString()));
 
         sensors.push_back(newSensor);
-        i++;
     }
+
+//    // Create the root of the tree
+//    pugi::xml_document doc;
+//    doc.load_file(calibPath.toStdString().c_str());
+
+//    // Create a child node from "calibration"
+//    pugi::xml_node nodeCalibration = doc.child("calibration");
+
+//    // Set Magnet's instance variables to data from calibration file
+//    pugi::xml_node nodeMagnet = nodeCalibration.child("magnet");
+//    magnet.diameter(boost::lexical_cast<double>(nodeMagnet.child("diameter").child_value()));
+//    magnet.length(boost::lexical_cast<double>(nodeMagnet.child("length").child_value()));
+//    magnet.Br(boost::lexical_cast<double>(nodeMagnet.child("Br").child_value()));
+//    magnet.Bt(boost::lexical_cast<double>(nodeMagnet.child("Bt").child_value()));
+
+//     Instantiate Sensor objects and set their instance variables (id, position , gain, ...)
+//    int i = 0;
+//    for (pugi::xml_node nodeSensor = nodeCalibration.child("sensor"); nodeSensor; nodeSensor = nodeSensor.next_sibling("sensor"))
+//    {
+//        Sensor *newSensor = new Sensor();
+//        newSensor->id = nodeSensor.attribute("id").as_uint();
+//        newSensor->position(loadVector(nodeSensor.child("position").child_value()));
+//        newSensor->EMF(loadVector(nodeSensor.child("EMF").child_value()));
+//        newSensor->offset(loadVector(nodeSensor.child("offset").child_value()));
+//        newSensor->gain(loadMatrix(nodeSensor.child("gain").child_value()));
+//        newSensor->angles(loadVector(nodeSensor.child("angles").child_value()));
+
+//        sensors.push_back(newSensor);
+//        i++;
+//    }
 
 }
 

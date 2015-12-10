@@ -16,7 +16,6 @@
 //#include <iostream>
 //#include <string>
 //#include <boost/lexical_cast.hpp>
-//#include "pugixml.hpp"
 //#include "common.h"
 //#include "asa047.hpp"
 
