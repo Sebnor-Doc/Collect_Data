@@ -55,15 +55,11 @@ void Localization::computeLocalization(MagData magData)
         int Bz = magData.at(i*3 + 2);
 
         sensors[i]->updateCurrentField(Bx, By, Bz);
-
         QVector<int> magField = sensors[i]->getCurrentField();
-
-//        (*outputFile_stream) << Bx << " " << By << " " << Bz << endl;
 
         (*outputFile_stream) << magField.at(0) << " "
                              << magField.at(1) << " "
                              << magField.at(2) << " ";
-
 
     }
     (*outputFile_stream) << endl;
