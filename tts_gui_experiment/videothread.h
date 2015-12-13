@@ -4,7 +4,9 @@
 // Thread
 #include <QMutex>
 #include <QThread>
-#include <QWaitCondition>
+
+// General
+#include <QImage>
 
 // OpenCV
 #include<opencv2/core/core.hpp>
@@ -12,24 +14,43 @@
 #include<opencv2/imgproc/imgproc.hpp>
 using namespace cv;
 
-// Other
-#include <QImage>
+// Needed to use Mat in signal/slot connections
+Q_DECLARE_METATYPE(Mat*)
+const int dontcare2 = qRegisterMetaType<Mat*>();
 
 
-class VideoThread: public QThread
+class VideoReadWorker: public QThread {
+    Q_OBJECT
+
+private:
+    VideoCapture camera;
+    bool stopExec;
+    Mat frame;
+    QMutex mutex;
+
+public:
+    VideoReadWorker();
+    ~VideoReadWorker();
+    void run();
+
+public slots:
+    void stop();
+
+signals:
+    void newFrame(Mat* frame);
+    void cameraInfo(int frame_width, int frame_height);
+};
+
+class VideoThread: public QObject
 {
     Q_OBJECT
 
 private:
     // General
-    VideoCapture camera;
-    VideoWriter *video;
-    bool saveVideo;
-    bool showVideo;
+    VideoWriter video;
+    VideoReadWorker readThread;
 
     // Video data
-    QString filename;
-    Mat videoMat;
     QImage videoImg;
 
     // Frame characteristics
@@ -38,39 +59,28 @@ private:
     int frame_rate;
 
     // Thread
-    bool stop;
     QMutex mutex;
-    QWaitCondition condition;
 
+public slots:
+    void process();
+    void setCameraInfo(int frame_width, int frame_height);
+    void setFilename(QString filename);
+    void saveVideo(bool save);
+    void displayVideo(bool disp);   
+    void stop();
 
- public:
-    VideoThread(QObject *parent = 0);
-    ~VideoThread();
-
-    void Play();
-    void Stop();
-
-    void setVideoName(QString filename);
-
-    void startSavingVideo();
-    void stopSavingVideo();
-
-    void startEmittingVideo();
-    void stopEmittingVideo();
-
+private slots:
+    void savingVideo(Mat* frame);
+    void emitVideo(Mat* frame);
 
  signals:
     void processedImage(const QPixmap &image);
+    void stopped();
+    void finished();
 
-
- private:
-    void setCamera();
-    void processVideo();
-    bool isStopped() const;
-
-
- protected:
-    void run();
+public:
+    ~VideoThread();
 
 };
+
 #endif // VIDEOVideoThread_H

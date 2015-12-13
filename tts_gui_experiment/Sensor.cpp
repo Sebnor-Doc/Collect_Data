@@ -1,163 +1,118 @@
-/*
- * Magnet.cpp
- *
- *  Created on: Mar 17, 2012
- *      Author: jacob
- */
-
 #include "Sensor.h"
-#include "common.h" // for PI
+#include <qmath.h>
 #include <QDebug>
 
-using std::cout;
+
 using std::endl;
-using cimg_library::CImg;
 
-Sensor::Sensor() {
-    m_position.assign(1,3).fill(0);
-    m_EMF.assign(1,3).fill(0);
-    m_offset.assign(1,3).fill(0);
-    m_gain.assign(3,3).fill(0);
-    m_angles.assign(1,3).fill(0);
+Sensor::Sensor(unsigned short id, QVector<double> pos, QVector<double> angles, QVector<double> rawGain, QVector<double> offset) {
 
+    this->id = id;
 
-    m_currentField.assign(1,3).fill(0);
-//    m_extrapField.assign(1,3).fill(0);
+    // Initialize 3x3 matrices
+    gain = gain.mat_type::zeros();
+    EMF = EMF.mat_type::zeros();
+    correction = correction.mat_type::zeros();
+    rotGain = rotGain.mat_type::zeros();
 
+    // Set matrices
+    for (int i = 0; i < 3; i++) {
+        this->position(i) = pos.at(i);
+        this->offset(i) = offset.at(i);
+        gain(i,i) = rawGain.at(i);
+        magField(i) = 0.0;
+    }
+
+    this->angles = angles;
+    setRotation();
 }
 
+void Sensor::updateMagField(int Bx, int By, int Bz){
+    Matx31d origField(Bx, By, Bz);
 
-/* ---------------------------------------------------- *
- * Compute actual magnetic field from raw sensor readings *
- * ---------------------------------------------------- */
-
-void Sensor::updateCurrentField(int Bx, int By, int Bz){
-    cimg_library::CImg<int> rawMagField;
-    rawMagField.assign(1,3).fill(Bx, By, Bz);
-
-    m_currentField =  rotation()*gain()*(rawMagField - m_EMF + m_offset);
+    magField =  rotGain * (origField + correction);
 }
 
-
-CImg<double> Sensor::rotation() {
-    CImg<double> R(3,3,1,1,0);
-    R = CImg<double>::rotation_matrix(0,0,1,m_angles(0)/180*PI);//Z
-    R = CImg<double>::rotation_matrix(1,0,0,m_angles(1)/180*PI)*R;//X
-    R = CImg<double>::rotation_matrix(0,0,1,m_angles(2)/180*PI)*R;//Z
-    return R.transpose();
-}
-
-CImg<double> Sensor::rotationInverse() {
-    CImg<double> R(3,3,1,1,0);
-    R = CImg<double>::rotation_matrix(0,0,1,-m_angles(2)/180*PI);
-    R = CImg<double>::rotation_matrix(1,0,0,-m_angles(1)/180*PI)*R;
-    R = CImg<double>::rotation_matrix(0,0,1,-m_angles(0)/180*PI)*R;
-    return R.transpose();
-}
-
-
-/* ---------------------------------------------------- *
- *                  Getter/Setter                       *
- * ---------------------------------------------------- */
-
-// Position
-CImg<double> Sensor::position() {
-    return this->m_position;
-}
-
-void Sensor::position(CImg<double> position) {
-    this->m_position = position;
-}
-
-// EMF
-CImg<double> Sensor::EMF() {
-    return this->m_EMF;
-}
-
-void Sensor::EMF(CImg<double> EMF) {
-    this->m_EMF = EMF;
-}
-
-// Gain
-CImg<double> Sensor::gain() {
-    return this->m_gain;
-}
-
-void Sensor::gain(CImg<double> gain) {
-    m_gain = gain;
-}
-
-// Offset
-cimg_library::CImg<double> Sensor::offset() {
-    return this->m_offset;
-}
-
-void Sensor::offset(CImg<double> offset) {
-    this->m_offset = offset;
-}
-
-// Current Field
-QVector<int> Sensor::getCurrentField()
+QVector<double> Sensor::getMagField()
 {
-    QVector<int> magField;
-    magField.reserve(3);
+    QVector<double> output;
 
-    magField.append(m_currentField(0,0));
-    magField.append(m_currentField(0,1));
-    magField.append(m_currentField(0,2));
 
-    return magField;
+    for (int i = 0; i < 3; i++) {
+       output.push_back(magField(i));
+    }
+
+    return output;
 }
 
+void Sensor::setRotation(){
+    // Convert euler angles from degrees to radians
+    double alpha    = qDegreesToRadians(angles.at(0));
+    double beta     = qDegreesToRadians(angles.at(1));
+    double gamma    = qDegreesToRadians(angles.at(2));
 
-// Angles
-CImg<double> Sensor::angles() {
-    return m_angles;
+    // Compute the rotation matrix using sensor angles relative to TTS reference
+    rotation(0,0) = qCos(gamma)*qCos(alpha) - qCos(beta)*qSin(alpha)*qSin(gamma);
+    rotation(0,1) = qCos(gamma)*qSin(alpha) + qCos(beta)*qCos(alpha)*qSin(gamma);
+    rotation(0,2) = qSin(gamma)*qSin(beta);
+    rotation(1,0) = -qSin(gamma)*qCos(alpha) - qCos(beta)*qSin(alpha)*qCos(gamma);
+    rotation(1,1) = -qSin(gamma)*qSin(alpha) + qCos(beta)*qCos(alpha)*qCos(gamma);
+    rotation(1,2) = qCos(gamma)*qSin(beta);
+    rotation(2,0) = qSin(beta)*qSin(alpha);
+    rotation(2,1) = -qSin(beta)*qCos(alpha);
+    rotation(2,2) = qCos(beta);
+
+    // Get inverse matrix to get rotation from Sensor to TTS reference
+    rotation = rotation.inv();
+
+    // Update Rotation*Gain Matrix
+    rotGain = rotation * gain;
 }
 
-Sensor& Sensor::angles(CImg<double> angles) {
-    m_angles = angles;
-    return *this;
+void Sensor::setEMF(QVector<double> emf){
+
+    for (int i = 0; i < 3; i++) {
+        this->EMF(i) = emf.at(i);
+    }
+
+    // Update Correction matrix
+    correction = offset - EMF;
 }
-
-Sensor& Sensor::angles(double alpha, double beta, double gamma) {
-    m_angles.fill(alpha, beta, gamma);
-    return *this;
-}
-
-
-/* ---------------------------------------------------- *
- *                  Other                               *
- * ---------------------------------------------------- */
-
 
 void Sensor::print() {
-    qDebug() << "Sensor[" << (this->id) << "]:" << endl;
+    qDebug() << "Sensor[" << id << "]:" << endl;
+
     qDebug() << "Sensor.position\t = ["
-             << (this->m_position(0)) << ";"
-             << (this->m_position(1)) << ";"
-             << (this->m_position(2)) << "]" << endl;
-    qDebug() << "Sensor.EMF\t = ["
-             << (this->m_EMF(0)) << ";"
-             << (this->m_EMF(1)) << ";"
-             << (this->m_EMF(2)) << "]" << endl;
-    qDebug() << "Sensor.offset\t = ["
-             << (this->m_offset(0)) << ";"
-             << (this->m_offset(1)) << ";"
-             << (this->m_offset(2)) << "]" << endl;
+             << position(0) << ";"
+             << position(1) << ";"
+             << position(2) << "]" << endl;
+
+    qDebug() << "Sensor.angles\t = ["
+             << angles.at(0) << ","
+             << angles.at(1)<< ","
+            <<  angles.at(2) << "]" << endl;
+
     qDebug() << "Sensor.gain\t = [["
-             << (this->m_gain(0,0)) << ";"
-             << (this->m_gain(1,0)) << ";"
-             << (this->m_gain(2,0)) << "]\n\t\t    ["
-             << (this->m_gain(0,1)) << ";"
-             << (this->m_gain(1,1)) << ";"
-             << (this->m_gain(2,1)) << "]\n\t\t    ["
-             << (this->m_gain(0,2)) << ";"
-             << (this->m_gain(1,2)) << ";"
-             << (this->m_gain(2,2)) << "]]" << endl;
-    qDebug() << "Sensor.angles\t = [" << (this->m_angles(0))<<","
-             <<(this->m_angles(1))<< ","
-            << (this->m_angles(2)) << "]" << endl;
+             << gain(0,0) << ";"
+             << gain(0,1) << ";"
+             << gain(0,2) << "]\n\t\t    ["
+             << gain(1,0) << ";"
+             << gain(1,1) << ";"
+             << gain(1,2) << "]\n\t\t    ["
+             << gain(2,0) << ";"
+             << gain(2,1) << ";"
+             << gain(2,2) << "]]" << endl;
+
+    qDebug() << "Sensor.offset\t = ["
+             << offset(0) << ";"
+             << offset(1) << ";"
+             << offset(2) << "]" << endl;
+
+    qDebug() << "Sensor.EMF\t = ["
+             << EMF(0) << ";"
+             << EMF(1) << ";"
+             << EMF(2) << "]" << endl;
+
     qDebug() << endl;
 }
 

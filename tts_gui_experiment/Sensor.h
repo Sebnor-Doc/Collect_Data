@@ -1,54 +1,40 @@
 /*
- * Magnet.h
- *
- *  Created on: Mar 17, 2012
- *      Author: jacob
+ *      Author: Nordine Sebkhi
  */
 
 #ifndef SENSOR_H_
 #define SENSOR_H_
 
 #include <QVector>
+#include<opencv2/core/core.hpp>
+using namespace cv;
 
 class Sensor {
 
 public:
-    //////////////////////////////////////
-    /// Variables
-    /////////////////////////////////////
     unsigned short id;
 
-    QVector<double> position, EMF, offset, gain, angles;
+    Sensor(unsigned short id,
+           QVector<double> pos,
+           QVector<double> angles,
+           QVector<double> rawGain,
+           QVector<double> offset
+           );
 
+    void setEMF(QVector<double> emf);
+    QVector<double> getMagField();
+    void updateMagField(int Bx, int By, int Bz);
 
-    //////////////////////////////////////
-    /// Methods
-    /////////////////////////////////////
-	Sensor();
+private:
 
-//    QVector<int> getCurrentField();
-//    void updateCurrentField(int Bx, int By, int Bz);
+    QVector<double> angles;
 
-//	cimg_library::CImg<double> position();
-//	void position(cimg_library::CImg<double> position);
+    Matx31d position, magField;
+    Matx31d offset, EMF, correction;
+    Matx33d gain, rotation, rotGain;
 
-//	cimg_library::CImg<double> EMF();
-//	void EMF(cimg_library::CImg<double> EMF);
-
-//	cimg_library::CImg<double> offset();
-//	void offset(cimg_library::CImg<double> offset);
-
-//	cimg_library::CImg<double> gain();
-//	void gain(cimg_library::CImg<double> gain);
-
-//	cimg_library::CImg<double> angles();
-//	Sensor& angles(cimg_library::CImg<double> angles);
-//    Sensor& angles(double alpha, double beta, double gamma);
-
-//private:
-//    cimg_library::CImg<double> rotation();
-//    cimg_library::CImg<double> rotationInverse();
-//    void print();
+    void setRotation();
+    void print();
 };
 
 

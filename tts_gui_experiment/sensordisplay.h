@@ -24,12 +24,7 @@ private:
     Ui::SensorDisplay *ui;
     ReadSensors *rs;
     QTimer *magTimer;
-    double startTime;
-
-    typedef struct MagInfo {
-        double time;
-        MagData* data;
-    } MagInfo;
+    qint64 startTime;
 
     typedef struct Plot {
         QCPGraph *graphX;
@@ -48,7 +43,7 @@ private:
 
 
 public slots:
-    void updateMagPlot();
+    void updateMagPlot(MagData magData);
     void closeEvent(QCloseEvent *event);
 
 signals:

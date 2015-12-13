@@ -4,37 +4,32 @@
 #
 #-------------------------------------------------
 
-QT      += core gui printsupport widgets serialport multimedia multimediawidgets
-CONFIG  += console static
-
 TARGET = TTS_NEU
+VERSION = 1.1
 TEMPLATE = app
+
+
+QT      += core gui printsupport widgets serialport multimedia multimediawidgets xml
+CONFIG  += console static
 
 
 SOURCES += main.cpp\
         TTS_GUI.cpp \
     qcustomplot.cpp \
-    pugixml.cpp \
     Magnet.cpp \
     Sensor.cpp \
     ReadSensors.cpp \
     sensordisplay.cpp \
-    Localization.cpp \
-    asa047.cpp \
     videothread.cpp
 
 HEADERS  += TTS_GUI.h \
     qcustomplot.h \
     common.h \
-    pugixml.hpp \
-    pugiconfig.hpp \
     CImg.h \
     Magnet.h \
     Sensor.h \
     ReadSensors.h \
     sensordisplay.h \
-    Localization.h \
-    asa047.hpp \
     videothread.h
 
 FORMS    += \

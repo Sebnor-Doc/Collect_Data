@@ -2,42 +2,104 @@
 #include <QCameraInfo>
 #include <QPixmap>
 
-
-VideoThread::VideoThread(QObject *parent): QThread(parent)
+/* *****************
+ * VideoThread
+ * **************** */
+void VideoThread::process()
 {
-    stop = true;
-    saveVideo = false;
-    showVideo = false;
+    connect(&readThread, SIGNAL(cameraInfo(int, int)), this, SLOT(setCameraInfo(int, int)));
+    connect(this, SIGNAL(stopped()), &readThread, SLOT(stop()), Qt::DirectConnection);
+//    connect(this, SIGNAL(stopped()), this, SLOT(deleteLater()));
+
+    readThread.start(QThread::HighPriority);
 }
 
-// Start thread
-void VideoThread::Play()
+void VideoThread::setCameraInfo(int frame_width, int frame_height){
+    this->frame_width  = frame_width;
+    this->frame_height = frame_height;
+    frame_rate = 30;
+}
+
+void VideoThread::savingVideo(Mat *frame)
 {
-    if (!isRunning()) {
-        if (isStopped()){
-            stop = false;
-        }
-        start(HighestPriority);
+    mutex.lock();
+    video.write(*frame);
+    mutex.unlock();
+}
+
+void VideoThread::saveVideo(bool save)
+{
+    if (save) {
+        connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(savingVideo(Mat*)));
     }
-}
+    else {
+        disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(savingVideo(Mat*)));
 
-void VideoThread::run()
-{
-    setCamera();
-
-    while (!stop)
-    {
         mutex.lock();
-        processVideo();
+
+        if (video.isOpened()) {
+            video.release();
+        }
+
         mutex.unlock();
     }
 }
 
-void VideoThread::setCamera()
+void VideoThread::displayVideo(bool disp)
 {
-    // Find index of LifeCam webcam
-    QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
+    if (disp) {
+        connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
+    }
+    else {
+        disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
 
+        // Emit a static icon
+        emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
+    }
+}
+
+void VideoThread::emitVideo(Mat *frame)
+{
+    Mat procFrame;
+    cv::cvtColor(*frame, procFrame, CV_BGR2RGB);       // invert BGR to RGB
+    videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
+
+    emit processedImage(QPixmap::fromImage(videoImg));
+}
+
+void VideoThread::stop()
+{
+    mutex.lock();
+    displayVideo(false);
+    saveVideo(false);
+    mutex.unlock();
+
+    emit stopped();
+}
+
+void VideoThread::setFilename(QString filename)
+{
+    if(video.isOpened()) {
+        video.release();
+    }
+
+    QString formatFilename = filename + "_video.avi";
+    video.open(formatFilename.toStdString(), CV_FOURCC('M','J','P','G'), frame_rate, Size(frame_width,frame_height), true);
+}
+
+VideoThread::~VideoThread(){
+    emit finished();
+}
+
+/* *****************
+ * VideoReadWorker
+ * **************** */
+VideoReadWorker::VideoReadWorker() {
+    // Start execution of video recording
+    stopExec = false;
+
+    // Find index of TTS supported camera in the list of connected cameras
+    QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
     int cameraIdx = -1;
 
     for (int i = 0; i < cameras.size(); i++) {
@@ -51,113 +113,48 @@ void VideoThread::setCamera()
         }
     }
 
-    // Open LifeCam or throw runtime exception if cannot be found
+    // Open Camera if found
     if (cameraIdx == -1) {
-        QString errorMsg = "TTS camera cannot be found";
-        qDebug() << errorMsg << endl;
+        // Find a good resolution to camera not found
+        qDebug() << "ERROR: No camera found";
 
     } else {
         camera.open(cameraIdx);
-        frame_width  = camera.get(CV_CAP_PROP_FRAME_WIDTH);
-        frame_height = camera.get(CV_CAP_PROP_FRAME_HEIGHT);
-        frame_rate = 30;
-        qDebug() << "Camera Device: " << cameras.at(cameraIdx).description() << "\n";
+        qDebug() << "OK: Camera found as " << cameras.at(cameraIdx).description() << "\n";
     }
 }
 
+void VideoReadWorker::run(){
+    // Send info needed for saving video data into a file
+    int frame_width  = camera.get(CV_CAP_PROP_FRAME_WIDTH);
+    int frame_height = camera.get(CV_CAP_PROP_FRAME_HEIGHT);
+    emit cameraInfo(frame_width, frame_height);
 
-// Display and/or save video data
-void VideoThread::processVideo()
-{
-    bool readSuccessful = camera.read(videoMat);
+    // Read video frames from camera
+    while(!stopExec) {
+        mutex.lock();
+        bool readSuccessful = camera.read(frame);
 
-    if (!readSuccessful || videoMat.empty()) {          // if we did not get a frame
-        qDebug() << "ERROR: CANNOT READ VIDEO IMAGES";
-        return;
+        if (readSuccessful) {
+            emit newFrame(&frame);
+        }
+        mutex.unlock();
     }
 
-    cv::Mat origVideoMat = videoMat.clone();
-
-    if (showVideo) {
-        cv::cvtColor(videoMat, videoMat, CV_BGR2RGB);       // invert BGR to RGB
-        videoImg = QImage((uchar*)videoMat.data, videoMat.cols, videoMat.rows, videoMat.step, QImage::Format_RGB888);
-
-        emit processedImage(QPixmap::fromImage(videoImg));
-    }
-
-    if (saveVideo)
-    {
-        video->write(origVideoMat);
-    }
+    // Closing procedure
+    camera.release();
+    qDebug() << "\n -- Camera Released\n";
 }
 
-
-// Save video data into .avi file
-void VideoThread::setVideoName(QString filename)
-{
-    this->filename = filename;
-}
-
-void VideoThread::startSavingVideo()
-{
+void VideoReadWorker::stop(){
     mutex.lock();
-    saveVideo = true;
-    video = new VideoWriter(filename.toStdString(),CV_FOURCC('M','J','P','G'),frame_rate, Size(frame_width,frame_height),true);
+    stopExec = true;
     mutex.unlock();
 }
 
-void VideoThread::stopSavingVideo()
-{
-    mutex.lock();
-    saveVideo = false;
-    video->release();
-    mutex.unlock();
-}
-
-
-// Show video
-void VideoThread::startEmittingVideo()
-{
-    showVideo = true;
-}
-
-void VideoThread::stopEmittingVideo()
-{
-    showVideo = false;
-
-    // Emit a static icon
-    emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(videoMat.cols, videoMat.rows));
-}
-
-
-// Stop thread
-void VideoThread::Stop()
-{
-    stop = true;
-    saveVideo = false;
-    showVideo = false;
-
-    if(video) {
-        video->release();
-    }
+VideoReadWorker::~VideoReadWorker(){
 
     if(camera.isOpened()) {
         camera.release();
     }
-
-}
-
-bool VideoThread::isStopped() const{
-    return this->stop;
-}
-
-
-// Destructor
-VideoThread::~VideoThread()
-{
-    mutex.lock();
-    stop = true;
-    condition.wakeOne();
-    mutex.unlock();
-    wait();
 }
