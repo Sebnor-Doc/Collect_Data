@@ -1,52 +1,28 @@
 /*
  * Magnet.h
  *
- *  Created on: Mar 17, 2012
- *      Author: jacob
+ * Author: Nordine Sebkhi
  */
 
 #ifndef MAGNET_H_
 #define MAGNET_H_
 
-#include <iostream>
-#include <string>
-#include <vector>
-#include <boost/lexical_cast.hpp>
-#include "CImg.h"
+#include <QVector3D>
 
 class Magnet {
 
-public:
-	double m_theta, m_phi, m_length, m_diameter, m_Bt, m_Br;
-	cimg_library::CImg<double> m_moment, m_position;
-	std::string printVector(const cimg_library::CImg<double>& myVector);
+private:
+    QVector3D position, moment;
+    double diameter, length, Bt, Br;
 
 public:
-	Magnet();
+    Magnet();
+    void setProprieties(double diam, double len, double Bt, double Br);
+    void setPosition(float x, float y, float z);
+    void setMoment(double theta, double phi);
+    QVector3D getTheoField(QVector3D sensorPos);
+    void print();
 
-	cimg_library::CImg<double> position();
-	Magnet& position(cimg_library::CImg<double> position);
-
-	cimg_library::CImg<double> moment();
-	Magnet& moment(double theta, double phi);
-	Magnet& moment(cimg_library::CImg<double> moment);
-
-	double diameter();
-	void diameter( double diameter);
-	double Br();
-	void Br( double Br );
-	double Bt();
-	void Bt( double Bt ); //TODO Can calculate Bt for specific shapes.
-	double length();
-	void length( double length );
-	double theta();
-	void theta( double theta);
-	double phi();
-	void phi( double phi );
-	void print();
-
-	cimg_library::CImg<double> fields(const cimg_library::CImg<double> position);
-	//	~Magnet();
 };
 
 #endif /* MAGNET_H_ */

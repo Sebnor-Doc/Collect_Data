@@ -52,6 +52,7 @@ private:
     MagReadWorker readMagSens;
     MagData magPacket;
     qint64 baseTime;
+    bool emf = false;
 
     // Serial Port
     boost::asio::io_service io;
@@ -68,6 +69,7 @@ private:
 signals:
     void stopReading();
     void lastPacket(MagData);
+    void dataToLocalize(MagData);
     void finished();
 
 public slots:
@@ -84,6 +86,7 @@ private slots:
 public:
     ~ReadSensors();
     void setFilename(QString filename);
+    void setEmf(bool emf);
 
 };
 #endif // ReadSensors_H

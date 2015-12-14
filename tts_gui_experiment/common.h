@@ -30,7 +30,6 @@ const int RANGE_VALS = 33000;
 
 
 // Others
-const double PI = 3.14159265358979323846;
 const int NUM_PTS = 100;
 const int AVG_N = 10;
 

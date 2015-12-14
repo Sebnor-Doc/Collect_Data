@@ -53,6 +53,7 @@ void ReadSensors::process(){
 
     // Update internal Mag data variable for last packet
     connect(&readMagSens, SIGNAL(packetRead(MagData)), this, SLOT(updateLastPacket(MagData)));
+
 }
 
 void ReadSensors::saveMag(bool save)
@@ -86,8 +87,15 @@ void ReadSensors::savingMag(MagData magData) {
         outputFileStream << magData.packet.at(i) << " ";
     }
 
+    // Save formatted time
     qint64 relativeTime = magData.time - baseTime;
     outputFileStream << relativeTime << " " << magData.id << endl;
+    magData.time = relativeTime;
+
+    // Signal Localization manager to process this mag. packet only if not in EMF saving mode
+    if (!emf) {
+        emit dataToLocalize(magData);
+    }
 
     mutex.unlock();
 }
@@ -115,6 +123,14 @@ void ReadSensors::setFilename(QString filename)
         sensorOutputFile.close();
     }
     sensorOutputFile.setFileName(filename);
+    mutex.unlock();
+}
+
+void ReadSensors::setEmf(bool emf)
+{
+    mutex.lock();
+    this->emf = emf;
+    qDebug() << "\n EMF = " << this->emf;
     mutex.unlock();
 }
 

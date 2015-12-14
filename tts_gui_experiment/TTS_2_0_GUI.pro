@@ -20,17 +20,18 @@ SOURCES += main.cpp\
     Sensor.cpp \
     ReadSensors.cpp \
     sensordisplay.cpp \
-    videothread.cpp
+    videothread.cpp \
+    localization.cpp
 
 HEADERS  += TTS_GUI.h \
     qcustomplot.h \
     common.h \
-    CImg.h \
     Magnet.h \
     Sensor.h \
     ReadSensors.h \
     sensordisplay.h \
-    videothread.h
+    videothread.h \
+    localization.h
 
 FORMS    += \
     TTS_GUI.ui \

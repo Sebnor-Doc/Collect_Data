@@ -2,8 +2,8 @@
 #include <qmath.h>
 #include <QDebug>
 
-
 using std::endl;
+
 
 Sensor::Sensor(unsigned short id, QVector<double> pos, QVector<double> angles, QVector<double> rawGain, QVector<double> offset) {
 
@@ -115,5 +115,3 @@ void Sensor::print() {
 
     qDebug() << endl;
 }
-
-

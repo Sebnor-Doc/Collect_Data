@@ -6,7 +6,6 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QFile>
-#include "CImg.h"
 #include <QUrl>
 #include <QAudioEncoderSettings>
 #include <QCloseEvent>
@@ -49,6 +48,16 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     connect(magThread, SIGNAL(finished()), magThread, SLOT(deleteLater()));
 
     magThread->start(QThread::HighestPriority);
+
+    // Initialize Localization Thread
+    QThread *locaThread = new QThread(this);
+    loca.init(sensors, magnet);
+
+    connect(locaThread, SIGNAL(started()), &loca, SLOT(start()));
+    connect(&rs, SIGNAL(dataToLocalize(MagData)), &loca, SLOT(processMag(MagData)));
+    connect(this, SIGNAL(fileName(QString)), &loca, SLOT(setFilename(QString)));
+
+    locaThread->start();
 
     // Intialize video
     QThread *videoThread = new QThread(this);
@@ -173,10 +182,11 @@ void MainWindow::loadCalibration(QString calibFilename) {
 
     // Set Magnet properties
     QDomElement magnetElt = root.firstChildElement("magnet");
-    magnet.diameter(magnetElt.firstChildElement("diameter").text().toDouble());
-    magnet.length(magnetElt.firstChildElement("length").text().toDouble());
-    magnet.Br(magnetElt.firstChildElement("Br").text().toDouble());
-    magnet.Bt(magnetElt.firstChildElement("Bt").text().toDouble());
+    double diameter(magnetElt.firstChildElement("diameter").text().toDouble());
+    double length(magnetElt.firstChildElement("length").text().toDouble());
+    double Br(magnetElt.firstChildElement("Br").text().toDouble());
+    double Bt(magnetElt.firstChildElement("Bt").text().toDouble());
+    magnet.setProprieties(diameter, length, Bt, Br);
 
 
     // Instantiate Sensor objects and set their instance variables (id, position , gain, ...)
@@ -319,6 +329,7 @@ void MainWindow::on_measureEMFButton_clicked()
 
     // Start saving mag data to EMF file
     rs.setFilename(emfFile);
+    rs.setEmf(true);
     rs.saveMag(true);
 
     // Record mag data for 1 second
@@ -326,8 +337,10 @@ void MainWindow::on_measureEMFButton_clicked()
 }
 
 void MainWindow::saveEMF() {
+
     // Stop saving and recording magnetic data
     rs.saveMag(false);
+    rs.setEmf(false);
 
     QVector<int> avgEMF(3*NUM_OF_SENSORS);
     avgEMF.fill(0);
@@ -405,11 +418,7 @@ void MainWindow::beginTrial(){
                               .arg(utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex()));
     ui->utteranceBrowser->setText(formatUtterance);
 
-    // Start data recording
-//    rs->setFileLocation(experiment_output_path + "_raw_sensor.txt"); // Magnetic stream
-
     emit save(true);
-//    rs->startSaving();
 
     audio1->stop();
     audio2->stop();

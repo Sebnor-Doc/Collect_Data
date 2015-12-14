@@ -10,6 +10,7 @@
 #include "Sensor.h"
 #include "sensordisplay.h"
 #include "videothread.h"
+#include "localization.h"
 
 #include <string>
 #include <vector>
@@ -22,9 +23,6 @@
 
 #include <QCamera>
 #include <QImage>
-
-#include "CImg.h"
-using namespace cimg_library;
 
 using namespace std;
 
@@ -45,6 +43,7 @@ private:
     QVector<Sensor*> sensors;
     ReadSensors rs;
     VideoThread video;
+    Localization loca;
 
     // Audio
     QAudioRecorder *audio1;
