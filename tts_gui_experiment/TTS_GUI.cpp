@@ -49,15 +49,15 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
 
     magThread->start(QThread::HighestPriority);
 
-    // Initialize Localization Thread
-    QThread *locaThread = new QThread(this);
-    loca.init(sensors, magnet);
+//    // Initialize Localization Thread
+//    QThread *locaThread = new QThread(this);
+//    loca.init(sensors, magnet);
 
-    connect(locaThread, SIGNAL(started()), &loca, SLOT(start()));
-    connect(&rs, SIGNAL(dataToLocalize(MagData)), &loca, SLOT(processMag(MagData)));
-    connect(this, SIGNAL(fileName(QString)), &loca, SLOT(setFilename(QString)));
+//    connect(locaThread, SIGNAL(started()), &loca, SLOT(start()));
+//    connect(&rs, SIGNAL(dataToLocalize(MagData)), &loca, SLOT(processMag(MagData)));
+//    connect(this, SIGNAL(fileName(QString)), &loca, SLOT(setFilename(QString)));
 
-    locaThread->start();
+//    locaThread->start();
 
     // Intialize video
     QThread *videoThread = new QThread(this);
@@ -91,6 +91,16 @@ void MainWindow::on_configButton_clicked()
 
     // Setup procedures
     setupExperiment();
+
+    // Initialize Localization Thread
+    QThread *locaThread = new QThread(this);
+    loca.init(sensors, magnet);
+
+    connect(locaThread, SIGNAL(started()), &loca, SLOT(start()));
+    connect(&rs, SIGNAL(dataToLocalize(MagData)), &loca, SLOT(processMag(MagData)));
+    connect(this, SIGNAL(fileName(QString)), &loca, SLOT(setFilename(QString)));
+
+    locaThread->start();
 
     // Set state of buttons
     ui->measureEMFButton->setEnabled(true);
@@ -191,6 +201,8 @@ void MainWindow::loadCalibration(QString calibFilename) {
 
     // Instantiate Sensor objects and set their instance variables (id, position , gain, ...)
     QDomNodeList sensorNodes = root.elementsByTagName("sensor");
+    sensors.reserve(sensorNodes.size());
+
     for (int i = 0; i < sensorNodes.size(); i++)
     {
         QDomElement sensorElt = sensorNodes.at(i).toElement();

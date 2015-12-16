@@ -130,7 +130,6 @@ void ReadSensors::setEmf(bool emf)
 {
     mutex.lock();
     this->emf = emf;
-    qDebug() << "\n EMF = " << this->emf;
     mutex.unlock();
 }
 

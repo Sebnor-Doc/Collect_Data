@@ -28,21 +28,18 @@ Sensor::Sensor(unsigned short id, QVector<double> pos, QVector<double> angles, Q
 }
 
 void Sensor::updateMagField(int Bx, int By, int Bz){
-    Matx31d origField(Bx, By, Bz);
 
+    Matx31d origField(Bx, By, Bz);
     magField =  rotGain * (origField + correction);
 }
 
-QVector<double> Sensor::getMagField()
+QVector3D Sensor::getMagField()
 {
-    QVector<double> output;
+    return QVector3D(magField(0), magField(1), magField(2));
+}
 
-
-    for (int i = 0; i < 3; i++) {
-       output.push_back(magField(i));
-    }
-
-    return output;
+QVector3D Sensor::getPosition() {
+    return QVector3D(position(0), position(1), position(2));
 }
 
 void Sensor::setRotation(){
@@ -107,6 +104,22 @@ void Sensor::print() {
              << offset(0) << ";"
              << offset(1) << ";"
              << offset(2) << "]" << endl;
+
+    qDebug() << "Sensor.Correction\t = ["
+             << correction(0) << ";"
+             << correction(1) << ";"
+             << correction(2) << "]" << endl;
+
+    qDebug() << "Sensor.rotGain\t = [["
+             << rotGain(0,0) << ";"
+             << rotGain(0,1) << ";"
+             << rotGain(0,2) << "]\n\t\t    ["
+             << rotGain(1,0) << ";"
+             << rotGain(1,1) << ";"
+             << rotGain(1,2) << "]\n\t\t    ["
+             << rotGain(2,0) << ";"
+             << rotGain(2,1) << ";"
+             << rotGain(2,2) << "]]" << endl;
 
     qDebug() << "Sensor.EMF\t = ["
              << EMF(0) << ";"

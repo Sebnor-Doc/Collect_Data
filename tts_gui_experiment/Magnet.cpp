@@ -20,6 +20,9 @@ Magnet::Magnet() {
     moment.setX(0);
     moment.setY(0);
     moment.setZ(0);
+
+    angles.setX(0);
+    angles.setY(0);
 }
 
 void Magnet::setProprieties(double diam, double len, double Bt, double Br)
@@ -38,11 +41,24 @@ void Magnet::setPosition(float x, float y, float z)
     position.setZ( z );
 }
 
+QVector3D Magnet::getPosition()
+{
+    return position;
+}
+
 void Magnet::setMoment(double theta, double phi)
 {
+    angles.setX(theta);
+    angles.setY(phi);
+
     moment.setX( qSin(theta) * qCos(phi) );
     moment.setY( qSin(theta) * qSin(phi) );
     moment.setZ( qCos(theta) );
+}
+
+QVector2D Magnet::getAngles()
+{
+    return angles;
 }
 
 QVector3D Magnet::getTheoField(QVector3D sensorPos)

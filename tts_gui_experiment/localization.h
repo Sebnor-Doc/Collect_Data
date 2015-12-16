@@ -5,10 +5,16 @@
 #include <QThread>
 #include <QFile>
 #include <QTextStream>
+#include <QVector>
 
 #include "common.h"
 #include "Sensor.h"
 #include "Magnet.h"
+
+#include <opencv2/core/optim.hpp>
+#include <opencv2/core/core.hpp>
+using namespace cv;
+
 
 struct LocaPoint {
     double x, y, z, theta, phi;
@@ -23,12 +29,29 @@ struct LocaData {
 Q_DECLARE_METATYPE(LocaData)
 const int dontcare3 = qRegisterMetaType<LocaData>();
 
+
+class Localizer : public MinProblemSolver::Function, public QObject {
+
+public:
+    Localizer(QObject *parent = 0);
+    void init(QVector<Sensor*> sensors, Magnet *magnetPtr);
+    void setMagData(MagData& magData);
+    double calc (const double *x) const;
+    int getDims() const;
+
+private:
+    QVector<Sensor*> sensors;
+    Magnet* magnet;
+    MagData magData;
+};
+
 class LocaWorker : public QObject
 {
     Q_OBJECT
 
 public:
-    void init(QVector<Sensor*> &sensors, Magnet &magnet);
+    LocaWorker(QObject *parent = 0);
+    void init(QVector<Sensor*> sensors, Magnet &magnet);
 
 public slots:
     void start();
@@ -38,8 +61,9 @@ signals:
     void dataLocalized(LocaData localizedData);
 
 private:
-    QVector<Sensor*> sensors;
     Magnet magnet;
+    Ptr<DownhillSolver> nealderMead;
+    Ptr<Localizer> localizer;
 };
 
 class Localization : public QObject
@@ -47,7 +71,8 @@ class Localization : public QObject
     Q_OBJECT
 
 public:
-    void init(QVector<Sensor*> &sensors, Magnet &magnet);
+    Localization(QObject *parent = 0);
+    void init(QVector<Sensor *> sensors, Magnet &magnet);
 
 public slots:
     void start();

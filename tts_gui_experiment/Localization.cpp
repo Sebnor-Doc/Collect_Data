@@ -1,12 +1,19 @@
 #include "localization.h"
 
 #include <QDebug>
+#include <QVector3D>
+#include <QVector2D>
+#include <qmath.h>
 
 /************
  * Localization
  * ********** */
 
-void Localization::init(QVector<Sensor*> &sensors, Magnet &magnet)
+Localization::Localization(QObject *parent) : QObject(parent) {
+
+}
+
+void Localization::init(QVector<Sensor*> sensors, Magnet &magnet)
 {
     locaWorker.init(sensors, magnet);
 }
@@ -14,6 +21,7 @@ void Localization::init(QVector<Sensor*> &sensors, Magnet &magnet)
 void Localization::start(){
 
     QThread *locaWorkerThread = new QThread(this);
+
     locaWorker.moveToThread(locaWorkerThread);
 
     connect(locaWorkerThread, SIGNAL(started()), &locaWorker, SLOT(start()));
@@ -30,7 +38,6 @@ void Localization::processMag(MagData magData){
     newLocaData.filename = filename;
 
     emit packetToLoca(newLocaData);
-//    locaQueue.enqueue(newLocaData);
 }
 
 void Localization::processLoca(LocaData locaData){
@@ -65,36 +72,92 @@ void Localization::setFilename(QString fileRoot){
 /************
  * LocaWorker
  * ********** */
-
-void LocaWorker::init(QVector<Sensor*> &sensors, Magnet &magnet)
-{
-    this->sensors = sensors;
-    this->magnet = magnet;
-
-    qDebug() << "\nLoca Worker Init: " << QThread::currentThreadId();
+LocaWorker::LocaWorker(QObject *parent) : QObject(parent) {
 }
 
+void LocaWorker::init(QVector<Sensor*> sensors, Magnet &magnet)
+{
+    this->magnet = magnet;
+
+    localizer = new Localizer(this);
+    localizer->init(sensors, &magnet);
+
+    Matx<double, 1, 5> initStep(0.0001, 0.0001, 0.0001, CV_PI/720.0, CV_PI/720.0);
+    TermCriteria criter(TermCriteria::COUNT + TermCriteria::EPS, 1000000, 0.0000000001);
+
+    nealderMead = DownhillSolver::create(localizer, initStep, criter);
+}
 
 void LocaWorker::start()
 {
-    qDebug() << "\nLoca Worker Start: " << QThread::currentThreadId();
 }
 
 void LocaWorker::localize(LocaData origData) {
-    LocaPoint point;
-    point.x = 1;
-    point.y = 3;
-    point.z = 7;
-    point.phi = 0.5;
-    point.theta = 0.8;
 
-    origData.locaPoint = point;
+    localizer->setMagData(origData.magData);
+
+    QVector3D lastMagnetPos = magnet.getPosition();
+    QVector2D lastMagnetAngle = magnet.getAngles();
+
+    Matx<double_t, 1, 5> initPoint(lastMagnetPos.x(), lastMagnetPos.y(), lastMagnetPos.z(), lastMagnetAngle.x(), lastMagnetAngle.y());
+
+    double res = nealderMead->minimize(initPoint);
+    qDebug() << "id: " << origData.magData.id << "\tres: " << res;
+
+    origData.locaPoint.x = initPoint(0);
+    origData.locaPoint.y = initPoint(1);
+    origData.locaPoint.z = initPoint(2);
+    origData.locaPoint.theta = initPoint(3);
+    origData.locaPoint.phi = initPoint(4);
+
+    magnet.setPosition(initPoint(0), initPoint(1), initPoint(2));
+    magnet.setMoment(initPoint(3), initPoint(4));
 
     emit dataLocalized(origData);
 }
 
 
+/************
+ * Localizer
+ * ********** */
 
+Localizer::Localizer(QObject *parent) : QObject(parent) {
+
+}
+
+void Localizer::init(QVector<Sensor*> sensors, Magnet *magnetPtr) {
+    this->sensors = sensors;
+    magnet = magnetPtr;
+}
+
+void Localizer::setMagData(MagData &magData){
+    this->magData = magData;
+}
+
+double Localizer::calc(const double *x) const {
+
+    double error = 0.0;
+
+    magnet->setPosition(x[0], x[1], x[2]);
+    magnet->setMoment(x[3], x[4]);
+
+    for (int i = 0; i < NUM_OF_SENSORS; i++) {
+
+        int Bx = magData.packet.at(3*i);
+        int By = magData.packet.at(3*i + 1);
+        int Bz = magData.packet.at(3*i + 2);
+
+        sensors[i]->updateMagField(Bx, By, Bz);
+
+        error += ( magnet->getTheoField(sensors[i]->getPosition()) - sensors[i]->getMagField() ).lengthSquared();
+    }
+
+    return error;
+}
+
+int Localizer::getDims() const {
+    return 5;
+}
 
 
 

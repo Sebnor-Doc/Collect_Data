@@ -6,6 +6,8 @@
 #define SENSOR_H_
 
 #include <QVector>
+#include <QVector3D>
+
 #include<opencv2/core/core.hpp>
 using namespace cv;
 
@@ -22,7 +24,8 @@ public:
            );
 
     void setEMF(QVector<double> emf);
-    QVector<double> getMagField();
+    QVector3D getMagField();
+    QVector3D getPosition();
     void updateMagField(int Bx, int By, int Bz);
 
 private:
