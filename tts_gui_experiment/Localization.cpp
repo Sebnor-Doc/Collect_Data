@@ -15,6 +15,8 @@ Localization::Localization(QObject *parent) : QObject(parent) {
 
 void Localization::init(QVector<Sensor*> sensors, Magnet &magnet)
 {
+    prevPacketId = 0;
+
     locaWorker.init(sensors, magnet);
 }
 
@@ -25,7 +27,7 @@ void Localization::start(){
     locaWorker.moveToThread(locaWorkerThread);
 
     connect(locaWorkerThread, SIGNAL(started()), &locaWorker, SLOT(start()));
-    connect(this, SIGNAL(packetToLoca(LocaData)), &locaWorker, SLOT(localize(LocaData)), Qt::QueuedConnection);
+    connect(this, SIGNAL(packetToLoca(MagData, QString)), &locaWorker, SLOT(localize(MagData, QString)), Qt::QueuedConnection);
     connect(&locaWorker, SIGNAL(dataLocalized(LocaData)), this, SLOT(processLoca(LocaData)));
 
     locaWorkerThread->start();
@@ -33,29 +35,33 @@ void Localization::start(){
 
 void Localization::processMag(MagData magData){
 
-    LocaData newLocaData;
-    newLocaData.magData = magData;
-    newLocaData.filename = filename;
+    qint16 packetIdDiff = static_cast<qint16>(magData.id) - prevPacketId;
 
-    emit packetToLoca(newLocaData);
+    if (packetIdDiff < 0 || packetIdDiff > 2) {
+        prevPacketId = magData.id;
+        emit packetToLoca(magData, filename);
+    }
+
 }
 
 void Localization::processLoca(LocaData locaData){
 
     if (QString::compare(outputFile.fileName(), locaData.filename) != 0) {
         outputFile.close();
-        outputFile.setFileName(filename);
+        outputFile.setFileName(locaData.filename);
         outputStream.setDevice(&outputFile);
         outputFile.open(QIODevice::WriteOnly | QIODevice::Text);
     }
 
-    outputStream << locaData.locaPoint.x << " "
-                 << locaData.locaPoint.y << " "
-                 << locaData.locaPoint.z << " "
-                 << locaData.locaPoint.theta << " "
-                 << locaData.locaPoint.phi << " "
-                 << locaData.magData.time << " "
-                 << locaData.magData.id << endl;
+    outputStream << locaData.x << " "
+                 << locaData.y << " "
+                 << locaData.z << " "
+                 << locaData.theta << " "
+                 << locaData.phi << " "
+                 << locaData.time << " "
+                 << locaData.id << endl;
+
+    emit packetLocalized(locaData);
 }
 
 void Localization::setFilename(QString fileRoot){
@@ -92,9 +98,9 @@ void LocaWorker::start()
 {
 }
 
-void LocaWorker::localize(LocaData origData) {
+void LocaWorker::localize(MagData origData, QString filename) {
 
-    localizer->setMagData(origData.magData);
+    localizer->setMagData(origData);
 
     QVector3D lastMagnetPos = magnet.getPosition();
     QVector2D lastMagnetAngle = magnet.getAngles();
@@ -102,18 +108,21 @@ void LocaWorker::localize(LocaData origData) {
     Matx<double_t, 1, 5> initPoint(lastMagnetPos.x(), lastMagnetPos.y(), lastMagnetPos.z(), lastMagnetAngle.x(), lastMagnetAngle.y());
 
     double res = nealderMead->minimize(initPoint);
-    qDebug() << "id: " << origData.magData.id << "\tres: " << res;
 
-    origData.locaPoint.x = initPoint(0);
-    origData.locaPoint.y = initPoint(1);
-    origData.locaPoint.z = initPoint(2);
-    origData.locaPoint.theta = initPoint(3);
-    origData.locaPoint.phi = initPoint(4);
+    LocaData locaPoint;
+    locaPoint.x = initPoint(0);
+    locaPoint.y = initPoint(1);
+    locaPoint.z = initPoint(2);
+    locaPoint.theta = initPoint(3);
+    locaPoint.phi = initPoint(4);
+    locaPoint.id = origData.id;
+    locaPoint.time = origData.time;
+    locaPoint.filename = filename;
 
     magnet.setPosition(initPoint(0), initPoint(1), initPoint(2));
     magnet.setMoment(initPoint(3), initPoint(4));
 
-    emit dataLocalized(origData);
+    emit dataLocalized(locaPoint);
 }
 
 

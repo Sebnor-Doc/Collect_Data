@@ -12,9 +12,6 @@
 #include "videothread.h"
 #include "localization.h"
 
-#include <string>
-#include <vector>
-
 #include <QVector>
 #include <QAudioRecorder>
 #include <QAudioProbe>
@@ -71,8 +68,8 @@ private:
 
     // Display Tongue Trajectory
     struct LocaPlot {
-        QCPCurve graph;
-        QCPAxisRect axis;
+        QCPCurve *graph;
+        QCPAxisRect *axis;
     };
 
     LocaPlot locaPlots[3];
@@ -98,6 +95,7 @@ private slots:
     void sensorDisplayClosed();
     void saveEMF();
     void on_trialBox_currentIndexChanged(int index);
+    void updateTongueTraj(LocaData locaData);
 
 
 private:
@@ -106,6 +104,7 @@ private:
     void setupExperiment();
     void loadExperimentFile(QString experimentFile);
     void setAudio();
+    void setTongueTraj();
     void beginTrial();
     void stopTrial();
     void setFilePath();

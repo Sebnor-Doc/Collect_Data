@@ -16,13 +16,20 @@
 using namespace cv;
 
 
-struct LocaPoint {
-    double x, y, z, theta, phi;
-};
+//struct LocaPoint {
+//    double x, y, z, theta, phi;
+//};
+
+//struct LocaData {
+//    MagData magData;
+//    LocaPoint locaPoint;
+//    QString filename;
+//};
 
 struct LocaData {
-    MagData magData;
-    LocaPoint locaPoint;
+    double x, y, z, theta, phi;
+    qint64 time;
+    quint8 id;
     QString filename;
 };
 
@@ -55,7 +62,8 @@ public:
 
 public slots:
     void start();
-    void localize(LocaData origData);
+//    void localize(LocaData origData);
+    void localize(MagData origData, QString filename);
 
 signals:
     void dataLocalized(LocaData localizedData);
@@ -81,13 +89,15 @@ public slots:
     void processLoca(LocaData locaData);
 
 signals:
-    void packetToLoca(LocaData locaData);
+    void packetToLoca(MagData magData, QString filename);
+    void packetLocalized(LocaData);
 
 private:
     LocaWorker locaWorker;
     QString filename;
     QFile outputFile;
     QTextStream outputStream;
+    qint16 prevPacketId;
 };
 
 #endif // LOCALIZATION_H

@@ -1,18 +1,17 @@
 #ifndef ReadSensors_H
 #define ReadSensors_H
 
+#include <boost/regex.h>
+#include <boost/asio/serial_port.hpp>
+#include <boost/asio.hpp>
+#include <boost/thread.hpp>
+
 #include "common.h"
 #include <QVector>
 #include <QFile>
 #include <QTextStream>
 #include <QMutex>
 #include <QThread>
-
-#include <boost/regex.h>
-#include <boost/asio/serial_port.hpp>
-#include <boost/asio.hpp>
-#include <boost/thread.hpp>
-
 
 class MagReadWorker: public QThread
 {

@@ -1,22 +1,17 @@
-#include "ui_TTS_GUI.h"
 #include "TTS_GUI.h"
+#include "ui_TTS_GUI.h"
+
 #include <QFileInfo>
 #include <QSerialPortInfo>
 #include <QDir>
 #include <QDateTime>
 #include <QDebug>
 #include <QFile>
-#include <QUrl>
 #include <QAudioEncoderSettings>
 #include <QCloseEvent>
 #include <QThread>
 #include <QCameraInfo>
 #include <QtXml>
-
-#include <boost/lexical_cast.hpp>
-#include <boost/tokenizer.hpp>
-using boost::escaped_list_separator;
-using boost::tokenizer;
 
 
 // Constructor
@@ -49,16 +44,6 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
 
     magThread->start(QThread::HighestPriority);
 
-//    // Initialize Localization Thread
-//    QThread *locaThread = new QThread(this);
-//    loca.init(sensors, magnet);
-
-//    connect(locaThread, SIGNAL(started()), &loca, SLOT(start()));
-//    connect(&rs, SIGNAL(dataToLocalize(MagData)), &loca, SLOT(processMag(MagData)));
-//    connect(this, SIGNAL(fileName(QString)), &loca, SLOT(setFilename(QString)));
-
-//    locaThread->start();
-
     // Intialize video
     QThread *videoThread = new QThread(this);
     video.moveToThread(videoThread);
@@ -81,28 +66,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     setAudio();
 
     // Initialize Tongue trajectory display
-    ui->tongueTrajPlot->plotLayout()->clear();
-
-    for (int i = 0; i < 3; i++) {
-       locaPlots[i].axis = new QCPAxisRect(ui->tongueTrajPlot);
-       locaPlots[i].axis->setupFullAxesBox(true);
-       locaPlots[i].axis->axis(QCPAxis::atLeft)->setRange(-10, 10);
-       locaPlots[i].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(0, 0, 255));
-       locaPlots[i].axis->axis(QCPAxis::atTop)->setLabel("X-Y");
-       ui->magPlot->plotLayout()->addElement(row, col, plots[i].axis);
-
-       plots[i].graphX = ui->magPlot->addGraph(plots[i].axis->axis(QCPAxis::atBottom), plots[i].axis->axis(QCPAxis::atLeft));
-       plots[i].graphY = ui->magPlot->addGraph(plots[i].axis->axis(QCPAxis::atBottom), plots[i].axis->axis(QCPAxis::atLeft));
-       plots[i].graphZ = ui->magPlot->addGraph(plots[i].axis->axis(QCPAxis::atBottom), plots[i].axis->axis(QCPAxis::atLeft));
-
-       plots[i].graphX->setPen(QPen(Qt::blue));
-       plots[i].graphY->setPen(QPen(Qt::red));
-       plots[i].graphZ->setPen(QPen(Qt::green));
-
-    }
-
-
-
+    setTongueTraj();
 
 }
 
@@ -124,6 +88,7 @@ void MainWindow::on_configButton_clicked()
     connect(locaThread, SIGNAL(started()), &loca, SLOT(start()));
     connect(&rs, SIGNAL(dataToLocalize(MagData)), &loca, SLOT(processMag(MagData)));
     connect(this, SIGNAL(fileName(QString)), &loca, SLOT(setFilename(QString)));
+    connect(&loca, SIGNAL(packetLocalized(LocaData)), this, SLOT(updateTongueTraj(LocaData)));
 
     locaThread->start();
 
@@ -463,6 +428,12 @@ void MainWindow::beginTrial(){
     audio2->setOutputLocation(QUrl::fromLocalFile(experiment_output_path + "_audio2.wav"));
     audio1->record();
     audio2->record();
+
+    // Reset tongue trajectory graph
+    locaPlots[0].graph->clearData();
+    locaPlots[1].graph->clearData();
+    locaPlots[2].graph->clearData();
+
 }
 
 void MainWindow::stopTrial(){
@@ -604,6 +575,61 @@ void MainWindow::updateAudioLevels(QAudioBuffer audioBuffer) {
 //    }
 
 
+}
+
+
+/* Tongue Trajectory */
+void MainWindow::setTongueTraj()
+{
+    ui->tongueTrajPlot->plotLayout()->clear();
+
+    for (int i = 0; i < 3; i++) {
+
+       locaPlots[i].axis = new QCPAxisRect(ui->tongueTrajPlot);
+       locaPlots[i].axis->setupFullAxesBox(true);
+       locaPlots[i].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(0, 0, 255));
+
+       ui->tongueTrajPlot->plotLayout()->addElement(0, i, locaPlots[i].axis);
+
+       locaPlots[i].graph = new QCPCurve(locaPlots[i].axis->axis(QCPAxis::atBottom),
+                                         locaPlots[i].axis->axis(QCPAxis::atLeft));
+
+       locaPlots[i].graph->setPen(QPen(Qt::blue));
+
+       ui->tongueTrajPlot->addPlottable(locaPlots[i].graph);
+    }
+
+    locaPlots[0].axis->axis(QCPAxis::atTop)->setLabel("X-Y");
+    locaPlots[0].axis->axis(QCPAxis::atBottom)->setLabel("X");
+    locaPlots[0].axis->axis(QCPAxis::atLeft)->setLabel("Y");
+    locaPlots[0].axis->axis(QCPAxis::atBottom)->setRange(-5,5);
+    locaPlots[0].axis->axis(QCPAxis::atLeft)->setRange(0,5);
+
+    locaPlots[1].axis->axis(QCPAxis::atTop)->setLabel("X-Z");
+    locaPlots[1].axis->axis(QCPAxis::atBottom)->setLabel("X");
+    locaPlots[1].axis->axis(QCPAxis::atLeft)->setLabel("Z");
+    locaPlots[1].axis->axis(QCPAxis::atBottom)->setRange(-5,5);
+    locaPlots[1].axis->axis(QCPAxis::atLeft)->setRange(-5,0);
+
+    locaPlots[2].axis->axis(QCPAxis::atTop)->setLabel("Y-Z");
+    locaPlots[2].axis->axis(QCPAxis::atBottom)->setLabel("Y");
+    locaPlots[2].axis->axis(QCPAxis::atLeft)->setLabel("Z");
+    locaPlots[2].axis->axis(QCPAxis::atBottom)->setRange(0,5);
+    locaPlots[2].axis->axis(QCPAxis::atLeft)->setRange(-5,0);
+}
+
+void MainWindow::updateTongueTraj(LocaData locaData){
+
+    double time = locaData.time;
+    double x = locaData.x * 100.0;
+    double y = locaData.y * 100.0;
+    double z = locaData.z * 100.0;
+
+    locaPlots[0].graph->addData(time, x, y);
+    locaPlots[1].graph->addData(time, x, z);
+    locaPlots[2].graph->addData(time, y, z);
+
+    ui->tongueTrajPlot->replot();
 }
 
 

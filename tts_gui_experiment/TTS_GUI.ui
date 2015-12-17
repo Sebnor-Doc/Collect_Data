@@ -14,13 +14,7 @@
    <string>Tongue Tracking System v1.0</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,4,3">
-    <property name="spacing">
-     <number>3</number>
-    </property>
-    <property name="sizeConstraint">
-     <enum>QLayout::SetDefaultConstraint</enum>
-    </property>
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="1,1,4,8">
     <item>
      <widget class="QGroupBox" name="configBox">
       <property name="title">
@@ -380,12 +374,16 @@ p, li { white-space: pre-wrap; }
      </layout>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="playButtonLay" stretch="1">
+     <layout class="QHBoxLayout" name="biofeedbackLayout" stretch="3,0,2">
       <item>
-       <layout class="QHBoxLayout" name="biofeedbackLay">
-        <item>
-         <widget class="QCustomPlot" name="tongueTrajPlot" native="true"/>
-        </item>
+       <widget class="QCustomPlot" name="tongueTrajPlot" native="true">
+        <property name="autoFillBackground">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="audioLayout">
         <item>
          <widget class="QProgressBar" name="leftVolumeBar">
           <property name="value">
@@ -406,46 +404,46 @@ p, li { white-space: pre-wrap; }
           </property>
          </widget>
         </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="videoLay" stretch="3,1">
         <item>
-         <layout class="QVBoxLayout" name="videoLay" stretch="3,1">
-          <item>
-           <widget class="QLabel" name="videoFeed">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="autoFillBackground">
-             <bool>false</bool>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">Background-color: #000;</string>
-            </property>
-            <property name="frameShape">
-             <enum>QFrame::Box</enum>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="showVideoCheckBox">
-            <property name="font">
-             <font>
-              <pointsize>20</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>Show Video</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
+         <widget class="QLabel" name="videoFeed">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="autoFillBackground">
+           <bool>false</bool>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">Background-color: #000;</string>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::Box</enum>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="showVideoCheckBox">
+          <property name="font">
+           <font>
+            <pointsize>20</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Show Video</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
