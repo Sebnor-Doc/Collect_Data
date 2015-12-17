@@ -79,6 +79,31 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
 
     // Initialize Audio
     setAudio();
+
+    // Initialize Tongue trajectory display
+    ui->tongueTrajPlot->plotLayout()->clear();
+
+    for (int i = 0; i < 3; i++) {
+       locaPlots[i].axis = new QCPAxisRect(ui->tongueTrajPlot);
+       locaPlots[i].axis->setupFullAxesBox(true);
+       locaPlots[i].axis->axis(QCPAxis::atLeft)->setRange(-10, 10);
+       locaPlots[i].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(0, 0, 255));
+       locaPlots[i].axis->axis(QCPAxis::atTop)->setLabel("X-Y");
+       ui->magPlot->plotLayout()->addElement(row, col, plots[i].axis);
+
+       plots[i].graphX = ui->magPlot->addGraph(plots[i].axis->axis(QCPAxis::atBottom), plots[i].axis->axis(QCPAxis::atLeft));
+       plots[i].graphY = ui->magPlot->addGraph(plots[i].axis->axis(QCPAxis::atBottom), plots[i].axis->axis(QCPAxis::atLeft));
+       plots[i].graphZ = ui->magPlot->addGraph(plots[i].axis->axis(QCPAxis::atBottom), plots[i].axis->axis(QCPAxis::atLeft));
+
+       plots[i].graphX->setPen(QPen(Qt::blue));
+       plots[i].graphY->setPen(QPen(Qt::red));
+       plots[i].graphZ->setPen(QPen(Qt::green));
+
+    }
+
+
+
+
 }
 
 

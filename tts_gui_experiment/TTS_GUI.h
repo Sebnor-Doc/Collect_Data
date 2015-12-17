@@ -24,6 +24,8 @@
 #include <QCamera>
 #include <QImage>
 
+//#include <qcustomplot.h>
+
 using namespace std;
 
 namespace Ui {
@@ -66,6 +68,14 @@ private:
 
     // Display sensor UI
     SensorDisplay *sensorUi;
+
+    // Display Tongue Trajectory
+    struct LocaPlot {
+        QCPCurve graph;
+        QCPAxisRect axis;
+    };
+
+    LocaPlot locaPlots[3];
 
 
 /* **************************************************** *
