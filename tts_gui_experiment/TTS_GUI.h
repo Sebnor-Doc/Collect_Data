@@ -67,12 +67,20 @@ private:
     SensorDisplay *sensorUi;
 
     // Display Tongue Trajectory
-    struct LocaPlot {
+    struct LocaTrajPlot {
         QCPCurve *graph;
         QCPAxisRect *axis;
     };
 
-    LocaPlot locaPlots[3];
+    LocaTrajPlot locaTrajPlots[3];
+
+    struct LocaTimePlot {
+        QCPGraph *graph;
+        QCPAxisRect *axis;
+    };
+
+    LocaTimePlot locaTimePlots[3];
+
 
 
 /* **************************************************** *

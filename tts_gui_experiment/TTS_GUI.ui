@@ -376,7 +376,7 @@ p, li { white-space: pre-wrap; }
     <item>
      <layout class="QHBoxLayout" name="biofeedbackLayout" stretch="3,0,2">
       <item>
-       <widget class="QCustomPlot" name="tongueTrajPlot" native="true">
+       <widget class="QCustomPlot" name="locaPlot" native="true">
         <property name="autoFillBackground">
          <bool>true</bool>
         </property>
