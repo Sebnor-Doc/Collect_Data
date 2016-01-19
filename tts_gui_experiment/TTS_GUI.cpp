@@ -612,7 +612,7 @@ void MainWindow::setTongueTraj()
     locaTrajPlots[0].axis->axis(QCPAxis::atBottom)->setLabel("X");
     locaTrajPlots[0].axis->axis(QCPAxis::atLeft)->setLabel("Y");
     locaTrajPlots[0].axis->axis(QCPAxis::atBottom)->setRange(-5,5);
-    locaTrajPlots[0].axis->axis(QCPAxis::atLeft)->setRange(0,5);
+    locaTrajPlots[0].axis->axis(QCPAxis::atLeft)->setRange(0,8);
 
     locaTrajPlots[1].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::darkGreen));
     locaTrajPlots[1].graph->setPen(QPen(Qt::darkGreen));
@@ -627,7 +627,7 @@ void MainWindow::setTongueTraj()
     locaTrajPlots[2].axis->axis(QCPAxis::atTop)->setLabel("Y-Z");
     locaTrajPlots[2].axis->axis(QCPAxis::atBottom)->setLabel("Y");
     locaTrajPlots[2].axis->axis(QCPAxis::atLeft)->setLabel("Z");
-    locaTrajPlots[2].axis->axis(QCPAxis::atBottom)->setRange(0,5);
+    locaTrajPlots[2].axis->axis(QCPAxis::atBottom)->setRange(0,8);
     locaTrajPlots[2].axis->axis(QCPAxis::atLeft)->setRange(-5,0);
 
     // Set Time series
@@ -643,7 +643,7 @@ void MainWindow::setTongueTraj()
     locaTimePlots[1].axis->axis(QCPAxis::atTop)->setLabel("Y (time)");
     locaTimePlots[1].axis->axis(QCPAxis::atBottom)->setLabel("time(s)");
     locaTimePlots[1].axis->axis(QCPAxis::atLeft)->setLabel("Y(cm)");
-    locaTimePlots[1].axis->axis(QCPAxis::atLeft)->setRange(0,5);
+    locaTimePlots[1].axis->axis(QCPAxis::atLeft)->setRange(0,8);
 
     locaTimePlots[2].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::red));
     locaTimePlots[2].graph->setPen(QPen(Qt::red));
