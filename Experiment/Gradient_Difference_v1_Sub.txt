@@ -1,0 +1,27 @@
+% Gradient Difference for pilot trial
+% Created by Nordine Sebkhi
+% List from Jun Lu
+% Date: 1/20/16
+
+Iterations: 5
+
+
+class: Tongue
+ka ka ka ka; ka ka ka ta; ka ka ta ta; ka ta ta ta; ta ta ta ta
+gir gir gir gir; gir gir gir sir; gir gir sir sir; gir sir sir sir; sir sir sir sir
+ro ro ro ro; ro ro ro ra; ro ro ra ra; ro ra ra ra; ra ra ra ra
+ee ee ee ee; ee ee ee ah; ee ee ah ah; ee ah ah ah; ah ah ah ah
+lee lee lee lee; lee lee lee la; lee lee la la; lee la la la; la la la la
+
+
+class: Audio
+la la la; ma la la; ma ma la; ma ma ma; mo mo mo
+a b c d; a b c l; a b q l; a r q l; d r q l
+a m d t; p m d t; p q d t; p q r t; p q r s
+a g i f; t g i f; t r i f; t r o f; t r o p
+
+
+class: Lips
+loot all loot; loot all loot; key all loot; key knee loot; key knee lee
+did bad knee; did bad knee; took bad knee; took hut knee; took hut all
+bad bad knee; bad bad knee; bad bad oh; oh bad knee; oh her knee
