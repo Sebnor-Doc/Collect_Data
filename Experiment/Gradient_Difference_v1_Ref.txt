@@ -1,0 +1,27 @@
+% Gradient Difference for pilot trial
+% Created by Nordine Sebkhi
+% List from Jun Lu
+% Date: 1/20/16
+
+Iterations: 1
+
+
+class: Tongue
+ka ka ka ka
+gir gir gir gir
+ro ro ro ro
+ee ee ee ee
+lee lee lee lee
+
+
+class: Audio
+la la la
+a b c d
+a m d t
+a g i f
+
+
+class: Lips
+loot all loot
+did bad knee
+bad bad knee
