@@ -234,10 +234,7 @@ void MainWindow::setupExperiment()
 
         for (int j = 0; j < utter.at(i)->size(); j++)
         {
-            QString word = utter.at(i)->at(j);
-            word.truncate(40);
-            word = word.trimmed();
-
+            QString word = parseUtter(utter.at(i)->at(j));
             QString utterPath = classPath + "/" + word;
 
             if (!QDir().mkdir(utterPath)){
@@ -704,7 +701,8 @@ void MainWindow::on_classBox_currentIndexChanged(int index)
     // Populate list of utterances for this class
     for(int j = 0; j < utter.at(index)->size(); j++)
     {
-        QString formatUtter = utter.at(index)->at(j) + "\t\t" + QString::number(j+1) + "/" + QString::number(utter.at(index)->size());
+        QString currentUtter = parseUtter(utter.at(index)->at(j));
+        QString formatUtter = currentUtter + "\t\t" + QString::number(j+1) + "/" + QString::number(utter.at(index)->size());
         ui->utteranceBox->addItem(formatUtter);
     }
 
@@ -736,9 +734,7 @@ void MainWindow::setFilePath()
     experiment_class.truncate(40);
     experiment_class = experiment_class.trimmed();
 
-    experiment_utter = utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex());
-    experiment_utter.truncate(40);
-    experiment_utter = experiment_utter.trimmed();
+    experiment_utter = parseUtter(utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex()));
 
     int trial = ui->trialBox->currentIndex() + 1;
 
@@ -768,6 +764,28 @@ QVector<double> MainWindow::parseVector(QString myString, bool matrix)
     }
 
     return output;
+}
+
+QString MainWindow::parseUtter(QString rawUtter) {
+
+    QString parsedUtter;
+
+    // For Second Language Learner protocol,
+    // Keep only the first part (english phonetic representation)
+    // if the utter contains translation and original language
+    if (rawUtter.contains(";")) {
+        int idxSemiCol = rawUtter.indexOf(";");
+        parsedUtter = (idxSemiCol != 0) ? rawUtter.left(idxSemiCol) : "";
+    }
+    else {
+        parsedUtter = rawUtter;
+    }
+
+    // Format the utterance by removing empty spaces and reduce length
+    parsedUtter.truncate(40);
+    parsedUtter = parsedUtter.trimmed();
+
+    return parsedUtter;
 }
 
 /* Closing methods */

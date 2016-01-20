@@ -117,6 +117,7 @@ private:
     void stopTrial();
     void setFilePath();
     QVector<double> parseVector(QString myString, bool matrix);
+    QString parseUtter(QString rawUtter);
 
 /* ****************************
  *              Signals
