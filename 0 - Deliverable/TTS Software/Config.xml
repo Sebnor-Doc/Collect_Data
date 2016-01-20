@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
-	<serialNum>0</serialNum>
-	<magnet>0<magnet>
-	<data>C:/TTS_Data/Test</data>
-	<experiment>NEU_Experiments</experiment>
+	<serialNum>3</serialNum>
+	<magnet>0</magnet>
+	<data>C:/TTS_Data/Test</data>  					<!-- Do not add "/" at the end -->
+	<experiment>Korean_Final_Ref</experiment>		<!-- Do not add .txt or any extension -->
 </config>
