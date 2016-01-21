@@ -781,6 +781,14 @@ QString MainWindow::parseUtter(QString rawUtter) {
         parsedUtter = rawUtter;
     }
 
+    // Remove special characters that cannot be used as folder/file name
+    QStringList specialChar;
+    specialChar << "?" << ":" << "/" << "\\" << "*" << "<" << ">" << "|";
+
+    for (QString charac : specialChar) {
+        parsedUtter.remove(charac);
+    }
+
     // Format the utterance by removing empty spaces and reduce length
     parsedUtter.truncate(40);
     parsedUtter = parsedUtter.trimmed();
