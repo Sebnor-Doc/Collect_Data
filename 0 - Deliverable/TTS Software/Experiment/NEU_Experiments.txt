@@ -1,12 +1,107 @@
-class: test
-Iterations: 2
+Iterations: 1
 
-tah
-ti
-tae
+class: word
+angry
+annoyed
+arm 
+back 
+bad 
+believe it 
+better
+Bye
+care 
+cold 
+different
+difficult
+disagree
+drinking 
+easy
+eating
+excited 
+family 
+fine
+food
+foot
+getting it 
+go out
+going out
+good
+great
+happy
+hard
+hate it
+head
+help
+hi
+hot
+hungry
+important
+leg 
+like it
+lonely
+love it
+medicine
+move
+nurse
+okay 
+reading
+remember 
+saying
+see
+sick
+sleeping
+sleepy
+stay
+staying
+stomach 
+talking
+this
+thirsty
+tired
+understand
+wake up
+walk
+want it
+watching TV
+water
+worried
+worse
+wrong
 
-class: words
-Iterations: 2
 
-taught
-teed
+class: phrase
+Are you
+Do you 
+Do you want to
+Help me
+I
+I did
+I didn’t 
+I need 
+I can
+I can't
+I don't
+I don't want to
+I have to
+I'm
+I'm not
+I have pain in my
+I'm trying to
+I want to
+I was
+It’s
+It isn’t
+It was 
+It wasn’t 
+You are
+You aren’t
+He is
+He isn’t
+She is
+She isn’t
+They are
+They aren’t
+Did i
+Did you
+Is it 
+How are you ?
