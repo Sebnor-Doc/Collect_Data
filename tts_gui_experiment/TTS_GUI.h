@@ -68,7 +68,8 @@ private:
 
     // Display Tongue Trajectory
     struct LocaTrajPlot {
-        QCPCurve *graph;
+        QCPCurve *graph;    // Keep the historic of tongue movement
+        QCPGraph *leadDot;  // disc tracer of current magnet position
         QCPAxisRect *axis;
     };
 

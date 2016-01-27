@@ -583,36 +583,49 @@ void MainWindow::setTongueTraj()
     // Set plots
     for (int i = 0; i < 3; i++) {
 
-       locaTrajPlots[i].axis = new QCPAxisRect(ui->locaPlot);
-       locaTrajPlots[i].axis->setupFullAxesBox(true);
+        // Setup Localization plane axis
+        locaTrajPlots[i].axis = new QCPAxisRect(ui->locaPlot);
+        locaTrajPlots[i].axis->setupFullAxesBox(true);
 
-       locaTimePlots[i].axis = new QCPAxisRect(ui->locaPlot);
-       locaTimePlots[i].axis->setupFullAxesBox(true);
+        // Setup Localization vs. Time (dynamic) axis
+        locaTimePlots[i].axis = new QCPAxisRect(ui->locaPlot);
+        locaTimePlots[i].axis->setupFullAxesBox(true);
 
+        // Add 2 vertically stacked plots (top = plane, bottom = dynamic)
+        ui->locaPlot->plotLayout()->addElement(0, i, locaTrajPlots[i].axis);
+        ui->locaPlot->plotLayout()->addElement(1, i, locaTimePlots[i].axis);
 
-       ui->locaPlot->plotLayout()->addElement(0, i, locaTrajPlots[i].axis);
-       ui->locaPlot->plotLayout()->addElement(1, i, locaTimePlots[i].axis);
+        // Create and add Localization graphs (trajectory + leading dot)
+        locaTrajPlots[i].graph = new QCPCurve(locaTrajPlots[i].axis->axis(QCPAxis::atBottom),
+                                          locaTrajPlots[i].axis->axis(QCPAxis::atLeft));
 
-       locaTrajPlots[i].graph = new QCPCurve(locaTrajPlots[i].axis->axis(QCPAxis::atBottom),
-                                             locaTrajPlots[i].axis->axis(QCPAxis::atLeft));
+        ui->locaPlot->addPlottable(locaTrajPlots[i].graph);
 
-       locaTimePlots[i].graph = ui->locaPlot->addGraph(locaTimePlots[i].axis->axis(QCPAxis::atBottom),
-                                                       locaTimePlots[i].axis->axis(QCPAxis::atLeft));
+        locaTrajPlots[i].leadDot = ui->locaPlot->addGraph(locaTrajPlots[i].axis->axis(QCPAxis::atBottom),
+                                                    locaTrajPlots[i].axis->axis(QCPAxis::atLeft));
 
-       ui->locaPlot->addPlottable(locaTrajPlots[i].graph);
+        // Create and add Localization vs. Time graph
+        locaTimePlots[i].graph = ui->locaPlot->addGraph(locaTimePlots[i].axis->axis(QCPAxis::atBottom),
+                                                    locaTimePlots[i].axis->axis(QCPAxis::atLeft));
     }
 
-    // Set trajectory plots
+    // Set trajectory plots attributes
     locaTrajPlots[0].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
     locaTrajPlots[0].graph->setPen(QPen(Qt::blue));
+    locaTrajPlots[0].leadDot->setPen(QPen(Qt::black));
+    locaTrajPlots[0].leadDot->setLineStyle(QCPGraph::lsNone);
+    locaTrajPlots[0].leadDot->setScatterStyle(QCPScatterStyle::ssDisc);
     locaTrajPlots[0].axis->axis(QCPAxis::atTop)->setLabel("X-Y");
     locaTrajPlots[0].axis->axis(QCPAxis::atBottom)->setLabel("X");
     locaTrajPlots[0].axis->axis(QCPAxis::atLeft)->setLabel("Y");
     locaTrajPlots[0].axis->axis(QCPAxis::atBottom)->setRange(-5,5);
-    locaTrajPlots[0].axis->axis(QCPAxis::atLeft)->setRange(0,8);
+    locaTrajPlots[0].axis->axis(QCPAxis::atLeft)->setRange(0,10);
 
     locaTrajPlots[1].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::darkGreen));
     locaTrajPlots[1].graph->setPen(QPen(Qt::darkGreen));
+    locaTrajPlots[1].leadDot->setPen(QPen(Qt::black));
+    locaTrajPlots[1].leadDot->setLineStyle(QCPGraph::lsNone);
+    locaTrajPlots[1].leadDot->setScatterStyle(QCPScatterStyle::ssDisc);
     locaTrajPlots[1].axis->axis(QCPAxis::atTop)->setLabel("X-Z");
     locaTrajPlots[1].axis->axis(QCPAxis::atBottom)->setLabel("X");
     locaTrajPlots[1].axis->axis(QCPAxis::atLeft)->setLabel("Z");
@@ -621,13 +634,16 @@ void MainWindow::setTongueTraj()
 
     locaTrajPlots[2].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::red));
     locaTrajPlots[2].graph->setPen(QPen(Qt::red));
+    locaTrajPlots[2].leadDot->setPen(QPen(Qt::black));
+    locaTrajPlots[2].leadDot->setLineStyle(QCPGraph::lsNone);
+    locaTrajPlots[2].leadDot->setScatterStyle(QCPScatterStyle::ssDisc);
     locaTrajPlots[2].axis->axis(QCPAxis::atTop)->setLabel("Y-Z");
     locaTrajPlots[2].axis->axis(QCPAxis::atBottom)->setLabel("Y");
     locaTrajPlots[2].axis->axis(QCPAxis::atLeft)->setLabel("Z");
-    locaTrajPlots[2].axis->axis(QCPAxis::atBottom)->setRange(0,8);
+    locaTrajPlots[2].axis->axis(QCPAxis::atBottom)->setRange(0,10);
     locaTrajPlots[2].axis->axis(QCPAxis::atLeft)->setRange(-5,0);
 
-    // Set Time series
+    // Set Time series attributes
     locaTimePlots[0].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
     locaTimePlots[0].graph->setPen(QPen(Qt::blue));
     locaTimePlots[0].axis->axis(QCPAxis::atTop)->setLabel("X (time)");
@@ -640,7 +656,7 @@ void MainWindow::setTongueTraj()
     locaTimePlots[1].axis->axis(QCPAxis::atTop)->setLabel("Y (time)");
     locaTimePlots[1].axis->axis(QCPAxis::atBottom)->setLabel("time(s)");
     locaTimePlots[1].axis->axis(QCPAxis::atLeft)->setLabel("Y(cm)");
-    locaTimePlots[1].axis->axis(QCPAxis::atLeft)->setRange(0,8);
+    locaTimePlots[1].axis->axis(QCPAxis::atLeft)->setRange(0,10);
 
     locaTimePlots[2].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::red));
     locaTimePlots[2].graph->setPen(QPen(Qt::red));
@@ -652,22 +668,32 @@ void MainWindow::setTongueTraj()
 
 void MainWindow::updateTongueTraj(LocaData locaData){
 
+    // Convert data
     double timeMs = locaData.time;
     double timeSec = locaData.time / 1000.0;
     double x = locaData.x * 100.0;
     double y = locaData.y * 100.0;
     double z = locaData.z * 100.0;
 
+    // Add point to localization graphs
     locaTrajPlots[0].graph->addData(timeMs, x, y);
     locaTrajPlots[1].graph->addData(timeMs, x, z);
     locaTrajPlots[2].graph->addData(timeMs, y, z);
 
+    // Set leading dots
+    locaTrajPlots[0].leadDot->clearData();
+    locaTrajPlots[1].leadDot->clearData();
+    locaTrajPlots[2].leadDot->clearData();
+    locaTrajPlots[0].leadDot->addData(x, y);
+    locaTrajPlots[1].leadDot->addData(x, z);
+    locaTrajPlots[2].leadDot->addData(y, z);
+
+    // Add point to time series
     locaTimePlots[0].graph->addData(timeSec, x);
     locaTimePlots[1].graph->addData(timeSec, y);
     locaTimePlots[2].graph->addData(timeSec, z);
 
     // remove data of lines that's outside visible range:
-
     double lowerBound = timeSec - 10;
 
     for (int i = 0; i < 3; i++) {
