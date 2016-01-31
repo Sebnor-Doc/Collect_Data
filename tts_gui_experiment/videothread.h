@@ -38,7 +38,7 @@ public slots:
 
 signals:
     void newFrame(Mat* frame);
-    void cameraInfo(int frame_width, int frame_height);
+    void cameraInfo(int frame_width, int frame_height, int fourCC, int fps);
 };
 
 class VideoThread: public QObject
@@ -49,6 +49,9 @@ private:
     // General
     VideoWriter video;
     VideoReadWorker readThread;
+    bool saveFrame;
+    bool dispFrame;
+
 
     // Video data
     QImage videoImg;
@@ -57,20 +60,20 @@ private:
     int frame_width;
     int frame_height;
     int frame_rate;
+    int fourCC;
 
     // Thread
     QMutex mutex;
 
 public slots:
     void process();
-    void setCameraInfo(int frame_width, int frame_height);
+    void setCameraInfo(int frame_width, int frame_height, int fourCC, int fps);
     void setFilename(QString filename);
     void saveVideo(bool save);
-    void displayVideo(bool disp);   
+    void displayVideo(bool disp);
     void stop();
 
 private slots:
-    void savingVideo(Mat* frame);
     void emitVideo(Mat* frame);
 
  signals:

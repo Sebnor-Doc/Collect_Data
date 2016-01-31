@@ -7,34 +7,47 @@
  * **************** */
 void VideoThread::process()
 {
-    connect(&readThread, SIGNAL(cameraInfo(int, int)), this, SLOT(setCameraInfo(int, int)));
+    connect(&readThread, SIGNAL(cameraInfo(int, int, int, int)), this, SLOT(setCameraInfo(int, int, int, int)));
     connect(this, SIGNAL(stopped()), &readThread, SLOT(stop()), Qt::DirectConnection);
-//    connect(this, SIGNAL(stopped()), this, SLOT(deleteLater()));
+    connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
 
     readThread.start(QThread::HighPriority);
 }
 
-void VideoThread::setCameraInfo(int frame_width, int frame_height){
-    this->frame_width  = frame_width;
-    this->frame_height = frame_height;
-    frame_rate = 30;
-}
-
-void VideoThread::savingVideo(Mat *frame)
-{
-    mutex.lock();
-    video.write(*frame);
-    mutex.unlock();
+void VideoThread::setCameraInfo(int frame_width, int frame_height, int fourCC, int fps){
+    this->frame_width   = frame_width;
+    this->frame_height  = frame_height;
+    this->fourCC        = fourCC;
+    this->frame_rate    = fps;
 }
 
 void VideoThread::saveVideo(bool save)
 {
-    if (save) {
-        connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(savingVideo(Mat*)));
+    mutex.lock();
+    saveFrame = save;
+    mutex.unlock();
+}
+
+void VideoThread::displayVideo(bool disp)
+{
+    mutex.lock();
+    dispFrame = disp;
+    mutex.unlock();
+
+    if (!dispFrame) {
+        // Emit a static icon
+        emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
+    }
+}
+
+void VideoThread::emitVideo(Mat *frame)
+{
+    if (saveFrame) {
+        mutex.lock();
+        video.write(*frame);
+        mutex.unlock();
     }
     else {
-        disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(savingVideo(Mat*)));
-
         mutex.lock();
 
         if (video.isOpened()) {
@@ -43,28 +56,13 @@ void VideoThread::saveVideo(bool save)
 
         mutex.unlock();
     }
-}
 
-void VideoThread::displayVideo(bool disp)
-{
-    if (disp) {
-        connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
+    if (dispFrame) {
+        Mat procFrame;
+        cv::cvtColor(*frame, procFrame, CV_BGR2RGB);       // invert BGR to RGB
+        videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
+        emit processedImage(QPixmap::fromImage(videoImg));
     }
-    else {
-        disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
-
-        // Emit a static icon
-        emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
-    }
-}
-
-void VideoThread::emitVideo(Mat *frame)
-{
-    Mat procFrame;
-    cv::cvtColor(*frame, procFrame, CV_BGR2RGB);       // invert BGR to RGB
-    videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
-
-    emit processedImage(QPixmap::fromImage(videoImg));
 }
 
 void VideoThread::stop()
@@ -84,7 +82,8 @@ void VideoThread::setFilename(QString filename)
     }
 
     QString formatFilename = filename + "_video.avi";
-    video.open(formatFilename.toStdString(), CV_FOURCC('M','J','P','G'), frame_rate, Size(frame_width,frame_height), true);
+
+    video.open(formatFilename.toStdString(), fourCC, frame_rate, Size(frame_width,frame_height), true);
 }
 
 VideoThread::~VideoThread(){
@@ -126,9 +125,13 @@ VideoReadWorker::VideoReadWorker() {
 
 void VideoReadWorker::run(){
     // Send info needed for saving video data into a file
-    int frame_width  = camera.get(CV_CAP_PROP_FRAME_WIDTH);
-    int frame_height = camera.get(CV_CAP_PROP_FRAME_HEIGHT);
-    emit cameraInfo(frame_width, frame_height);
+    int frame_width  = static_cast<int>(camera.get(CV_CAP_PROP_FRAME_WIDTH));
+    int frame_height = static_cast<int>(camera.get(CV_CAP_PROP_FRAME_HEIGHT));
+    int fourCC = CV_FOURCC('D','I','V','3'); // Smaller output file size than previously 'M','J','P','G'
+    int fps = 30;
+
+    camera.set(CV_CAP_PROP_FPS, fps);   // Set frame per second to camera
+    emit cameraInfo(frame_width, frame_height, fourCC, fps);
 
     // Read video frames from camera
     while(!stopExec) {
