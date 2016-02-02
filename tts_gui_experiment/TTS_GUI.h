@@ -114,6 +114,7 @@ private:
     void loadExperimentFile(QString experimentFile);
     void setAudio();
     void setTongueTraj();
+    void clearTongueTraj();
     void beginTrial();
     void stopTrial();
     void setFilePath();

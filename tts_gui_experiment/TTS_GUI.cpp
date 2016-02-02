@@ -427,9 +427,7 @@ void MainWindow::beginTrial(){
     audio2->record();
 
     // Reset tongue trajectory graph
-    locaTrajPlots[0].graph->clearData();
-    locaTrajPlots[1].graph->clearData();
-    locaTrajPlots[2].graph->clearData();
+    clearTongueTraj();
 
 }
 
@@ -708,6 +706,14 @@ void MainWindow::updateTongueTraj(LocaData locaData){
     ui->locaPlot->replot();
 }
 
+void MainWindow::clearTongueTraj() {
+
+    // Clear all trajectory plots data
+    for (int i = 0; i < 3; i++) {
+        locaTrajPlots[i].graph->clearData();
+        locaTimePlots[i].graph->clearData();
+    }
+}
 
 /* Manage Drop-down lists */
 void MainWindow::on_trialBox_currentIndexChanged(int index)
