@@ -50,11 +50,12 @@ private:
     VideoWriter video;
     VideoReadWorker readThread;
     bool saveFrame;
-    bool dispFrame;
-
+    short dispMode;
 
     // Video data
     QImage videoImg;
+    QList<QPixmap> playbackList;
+    int playbackIdx;
 
     // Frame characteristics
     int frame_width;
@@ -70,20 +71,21 @@ public slots:
     void setCameraInfo(int frame_width, int frame_height, int fourCC, int fps);
     void setFilename(QString filename);
     void saveVideo(bool save);
-    void displayVideo(bool disp);
+    void displayVideo(short mode);
+    void updatePlaybackIdx(int);
     void stop();
 
 private slots:
     void emitVideo(Mat* frame);
 
- signals:
+signals:
     void processedImage(const QPixmap &image);
     void stopped();
     void finished();
 
 public:
+    int getNumOfFramesPlayback();
     ~VideoThread();
-
 };
 
 #endif // VIDEOVideoThread_H

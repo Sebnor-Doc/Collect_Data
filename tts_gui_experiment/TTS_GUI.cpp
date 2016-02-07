@@ -45,22 +45,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     magThread->start(QThread::HighestPriority);
 
     // Intialize video
-    QThread *videoThread = new QThread(this);
-    video.moveToThread(videoThread);
-
-    connect(videoThread, SIGNAL(started()), &video, SLOT(process()));
-    connect(this, SIGNAL(save(bool)), &video, SLOT(saveVideo(bool)));
-    connect(ui->showVideoCheckBox, SIGNAL(clicked(bool)), &video, SLOT(displayVideo(bool)), Qt::DirectConnection);   
-    connect(this, SIGNAL(fileName(QString)), &video, SLOT(setFilename(QString)));
-    connect(&video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)));
-
-    connect(this, SIGNAL(stopRecording()), &video, SLOT(stop()));
-    connect(&video, SIGNAL(finished()), videoThread, SLOT(quit()));
-    connect(videoThread, SIGNAL(finished()), videoThread, SLOT(deleteLater()));
-
-    videoThread->start();
-    ui->showVideoCheckBox->setChecked(true);
-    emit ui->showVideoCheckBox->clicked(true);
+    setVideo();
 
     // Initialize Audio
     setAudio();
@@ -417,8 +402,19 @@ void MainWindow::beginTrial(){
                               .arg(utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex()));
     ui->utteranceBrowser->setText(formatUtterance);
 
+    // Disable video playback
+    if (ui->videoPlaybackRadio->isChecked()) {
+        ui->videoPlaybackRadio->setChecked(false);
+        ui->videoShowRadio->setChecked(true);
+        videoManager();
+    }
+
+    ui->videoPlaybackRadio->setEnabled(false);
+
+    // Send signal to start saving
     emit save(true);
 
+    // Set and Record audio
     audio1->stop();
     audio2->stop();
     audio1->setOutputLocation(QUrl::fromLocalFile(experiment_output_path + "_audio1.wav"));
@@ -428,7 +424,6 @@ void MainWindow::beginTrial(){
 
     // Reset tongue trajectory graph
     clearTongueTraj();
-
 }
 
 void MainWindow::stopTrial(){
@@ -473,6 +468,11 @@ void MainWindow::stopTrial(){
     else {
         ui->startStopTrialButton->setText("Start");
     }
+
+    // Manage video playback
+    ui->videoPlaybackRadio->setEnabled(true);
+    ui->videoSlider->setRange(0, video.getNumOfFramesPlayback() - 1);
+    video.updatePlaybackIdx(0);
 }
 
 
@@ -500,6 +500,67 @@ void MainWindow::sensorDisplayClosed(){
     ui->showMagButton->setChecked(false);
 }
 
+/* Video */
+void MainWindow::setVideo() {
+
+    // Initialize a thread
+    QThread *videoThread = new QThread(this);
+    video.moveToThread(videoThread);
+
+    // Manage the thread lifecycle
+    connect(videoThread, SIGNAL(started()), &video, SLOT(process()));
+    connect(this, SIGNAL(stopRecording()), &video, SLOT(stop()));
+    connect(&video, SIGNAL(finished()), videoThread, SLOT(quit()));
+    connect(videoThread, SIGNAL(finished()), videoThread, SLOT(deleteLater()));
+
+    // Update video feed with image provided by video thread
+    connect(&video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)));
+
+    // Manage saving status during data collection
+    connect(this, SIGNAL(save(bool)), &video, SLOT(saveVideo(bool)));
+    connect(this, SIGNAL(fileName(QString)), &video, SLOT(setFilename(QString)));
+
+    // Select a radio button calls videoManager to set the display mode
+    connect(ui->videoShowRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
+    connect(ui->videoPlaybackRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
+    connect(ui->videoHideRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
+
+    // Manage playback
+    connect(ui->videoSlider, SIGNAL(valueChanged(int)), &video, SLOT(updatePlaybackIdx(int)));
+    ui->videoPlaybackRadio->setEnabled(false);
+    ui->videoSlider->setEnabled(false);
+
+    // Set videoMode to view camera feed
+    videoManager();
+
+    // Start video data acquisition
+    videoThread->start();
+}
+
+void MainWindow::videoManager() {
+
+    // Reset slider position to 0 and disable
+    ui->videoSlider->setValue(0);
+    ui->videoSlider->setEnabled(false);
+
+
+    // Set video display mode
+    // 0 = Live feed ; 1 = Playback ; Other = No feed
+    int videoMode;
+
+    if (ui->videoShowRadio->isChecked()) {
+        videoMode = 0;
+    }
+    else if (ui->videoPlaybackRadio->isChecked()) {
+        ui->videoSlider->setEnabled(true);
+        videoMode = 1;
+    }
+    else {
+        videoMode = 2;
+    }
+
+    video.displayVideo(videoMode);
+}
 
 
 /* Audio */

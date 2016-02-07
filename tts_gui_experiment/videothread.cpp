@@ -5,12 +5,18 @@
 /* *****************
  * VideoThread
  * **************** */
+
 void VideoThread::process()
 {
+    // Init variables
+    saveFrame = false;
+
+    // Setup connections
     connect(&readThread, SIGNAL(cameraInfo(int, int, int, int)), this, SLOT(setCameraInfo(int, int, int, int)));
     connect(this, SIGNAL(stopped()), &readThread, SLOT(stop()), Qt::DirectConnection);
     connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
 
+    // Start thread that reads video frames continuously
     readThread.start(QThread::HighPriority);
 }
 
@@ -25,53 +31,68 @@ void VideoThread::saveVideo(bool save)
 {
     mutex.lock();
     saveFrame = save;
+
+    // Release previous video writer if still open
+    if (!saveFrame && video.isOpened()) {
+        video.release();
+    }
+
+    // Clear list of frames
+    if (saveFrame) {
+        playbackList.clear();
+    }
+
     mutex.unlock();
 }
 
-void VideoThread::displayVideo(bool disp)
+void VideoThread::displayVideo(short mode)
 {
     mutex.lock();
-    dispFrame = disp;
+    dispMode = mode;
     mutex.unlock();
-
-    if (!dispFrame) {
-        // Emit a static icon
-        emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
-    }
 }
 
 void VideoThread::emitVideo(Mat *frame)
 {
+    // Convert Mat frame into a QPixmap for video feed
+    Mat procFrame;
+    cv::cvtColor(*frame, procFrame, CV_BGR2RGB);       // invert BGR to RGB
+    videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
+    QPixmap videoPixmap = QPixmap::fromImage(videoImg);
+
+    // Handle frame saving during data collection
     if (saveFrame) {
         mutex.lock();
         video.write(*frame);
+        playbackList.append(videoPixmap);
         mutex.unlock();
+    }
+
+    // Emit proper image based on display mode to video feed in GUI
+    if (dispMode == 0) {
+        emit processedImage(videoPixmap);
+    }
+    else if (dispMode == 1) {
+        emit processedImage(playbackList.at(playbackIdx));
     }
     else {
-        mutex.lock();
-
-        if (video.isOpened()) {
-            video.release();
-        }
-
-        mutex.unlock();
+        emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
     }
+}
 
-    if (dispFrame) {
-        Mat procFrame;
-        cv::cvtColor(*frame, procFrame, CV_BGR2RGB);       // invert BGR to RGB
-        videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
-        emit processedImage(QPixmap::fromImage(videoImg));
-    }
+void VideoThread::updatePlaybackIdx(int idx) {
+    mutex.lock();
+    playbackIdx = idx;
+    mutex.unlock();
+}
+
+int VideoThread::getNumOfFramesPlayback() {
+    return playbackList.size();
 }
 
 void VideoThread::stop()
 {
-    mutex.lock();
-    displayVideo(false);
     saveVideo(false);
-    mutex.unlock();
-
     emit stopped();
 }
 
@@ -127,7 +148,7 @@ void VideoReadWorker::run(){
     // Send info needed for saving video data into a file
     int frame_width  = static_cast<int>(camera.get(CV_CAP_PROP_FRAME_WIDTH));
     int frame_height = static_cast<int>(camera.get(CV_CAP_PROP_FRAME_HEIGHT));
-    int fourCC = CV_FOURCC('D','I','V','3'); // Smaller output file size than previously 'M','J','P','G'
+    int fourCC = CV_FOURCC('M','J','P','G');
     int fps = 30;
 
     camera.set(CV_CAP_PROP_FPS, fps);   // Set frame per second to camera

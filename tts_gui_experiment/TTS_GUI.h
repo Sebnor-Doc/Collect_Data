@@ -105,6 +105,7 @@ private slots:
     void saveEMF();
     void on_trialBox_currentIndexChanged(int index);
     void updateTongueTraj(LocaData locaData);
+    void videoManager();
 
 
 private:
@@ -112,6 +113,7 @@ private:
     void loadCalibration(QString calibFilename);
     void setupExperiment();
     void loadExperimentFile(QString experimentFile);
+    void setVideo();
     void setAudio();
     void setTongueTraj();
     void clearTongueTraj();
