@@ -128,10 +128,8 @@ private:
  * *************************** */
 signals:
     void save(bool);
-    void dispVideo(bool);
     void fileName(QString);
     void stopRecording();
-
 };
 
 #endif // TTS_GUI_H
