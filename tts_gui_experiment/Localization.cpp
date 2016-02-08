@@ -65,13 +65,13 @@ void Localization::processLoca(LocaData locaData){
 }
 
 void Localization::setFilename(QString fileRoot){
-    filename = fileRoot + "_loca.txt";
 
-    if (!outputFile.isOpen()) {
-        outputFile.setFileName(filename);
-        outputStream.setDevice(&outputFile);
-        outputFile.open(QIODevice::WriteOnly | QIODevice::Text);
-    }
+    // Reset Text Stream object
+    outputFile.close();
+    filename = fileRoot + "_loca.txt";
+    outputFile.setFileName(filename);
+    outputStream.setDevice(&outputFile);
+    outputFile.open(QIODevice::WriteOnly | QIODevice::Text);
 }
 
 

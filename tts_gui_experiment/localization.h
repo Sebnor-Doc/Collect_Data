@@ -16,16 +16,6 @@
 using namespace cv;
 
 
-//struct LocaPoint {
-//    double x, y, z, theta, phi;
-//};
-
-//struct LocaData {
-//    MagData magData;
-//    LocaPoint locaPoint;
-//    QString filename;
-//};
-
 struct LocaData {
     double x, y, z, theta, phi;
     qint64 time;
@@ -62,7 +52,6 @@ public:
 
 public slots:
     void start();
-//    void localize(LocaData origData);
     void localize(MagData origData, QString filename);
 
 signals:
