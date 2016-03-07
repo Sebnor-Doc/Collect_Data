@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-TARGET = TTS_NEU
+TARGET = MSCS
 VERSION = 1.1
 TEMPLATE = app
 
