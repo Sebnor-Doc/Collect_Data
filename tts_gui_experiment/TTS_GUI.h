@@ -11,6 +11,7 @@
 #include "sensordisplay.h"
 #include "videothread.h"
 #include "localization.h"
+#include "voicemanager.h"
 
 #include <QVector>
 #include <QAudioRecorder>
@@ -43,12 +44,16 @@ private:
     ReadSensors rs;
     VideoThread video;
     Localization loca;
+    VoiceManager voice;
 
     // Audio
-    QAudioRecorder *audio1;
-    QAudioRecorder *audio2;
-    QAudioProbe *audioProbe1;
-    QAudioProbe *audioProbe2;
+    struct Waveform{
+        QCPGraph *graph;
+        QCPRange keysRange;
+        QCPRange valuesRange;
+    };
+
+    Waveform waveform;
 
     // Utterances
     QList<QString> classUtter;
@@ -99,7 +104,7 @@ private slots:
     void on_startStopTrialButton_toggled(bool checked);
     void on_classBox_currentIndexChanged(int index);
     void on_utteranceBox_currentIndexChanged(int index);
-    void updateAudioLevels(QAudioBuffer audioBuffer);
+    void updateWaveform(AudioSample sample);
     void on_showMagButton_toggled(bool checked);
     void sensorDisplayClosed();
     void saveEMF();
@@ -116,7 +121,8 @@ private:
     void setVideo();
     void setAudio();
     void setTongueTraj();
-    void clearTongueTraj();
+    void clearPlots();
+    void setWaveform();
     void beginTrial();
     void stopTrial();
     void setFilePath();

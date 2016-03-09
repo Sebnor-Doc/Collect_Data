@@ -22,12 +22,12 @@ struct MagData{
 };
 const int dontcare = qRegisterMetaType<MagData>("MagData"); // Needed for Signal/Slot connections
 
+// Typedef for Audio data
+typedef QMap<double, double> AudioSample;   // Map is preferred as easy to get QVectors from keys and values
+const int dontcare4 = qRegisterMetaType< AudioSample >("AudioSample");
 
 //Plot details
 const int RANGE_VALS = 33000;
-//const int SENSOR_WORKING_THRESHOLD = 100;
-//const int LPlot_count = 1;
-
 
 // Others
 const int NUM_PTS = 100;

@@ -414,24 +414,13 @@ void MainWindow::beginTrial(){
     // Send signal to start saving
     emit save(true);
 
-    // Set and Record audio
-    audio1->stop();
-    audio2->stop();
-    audio1->setOutputLocation(QUrl::fromLocalFile(experiment_output_path + "_audio1.wav"));
-    audio2->setOutputLocation(QUrl::fromLocalFile(experiment_output_path + "_audio2.wav"));
-    audio1->record();
-    audio2->record();
-
     // Reset tongue trajectory graph
-    clearTongueTraj();
+    clearPlots();
 }
 
 void MainWindow::stopTrial(){
 
     emit save(false);
-
-    audio1->stop();
-    audio2->stop();
 
     // Update next trial
     sessionCompleted = false;
@@ -566,71 +555,60 @@ void MainWindow::videoManager() {
 /* Audio */
 void MainWindow::setAudio(){
 
-    audio1 = new QAudioRecorder();
-    audio2 = new QAudioRecorder();
+    // Set Waveform
+    setWaveform();
 
-    QStringList audioDevices = audio1->audioInputs();
+    // Set Thread
+    QThread *audioThread = new QThread(this);
+    voice.moveToThread(audioThread);
 
-    foreach (QString device, audioDevices) {
+    connect(audioThread, SIGNAL(started()), &voice, SLOT(init()));
+    connect(&voice, SIGNAL(audioSample(AudioSample)), this, SLOT(updateWaveform(AudioSample)));
 
-        if (device.contains("USB PnP"))
-        {
-            if (!audio1->audioInput().contains("USB PnP")) {
-                audio1->setAudioInput(device);
+    // Manage saving status during data collection
+    connect(this, SIGNAL(save(bool)), &voice, SLOT(save(bool)));
+    connect(this, SIGNAL(fileName(QString)), &voice, SLOT(setFilename(QString)));
+    connect(this, SIGNAL(stopRecording()), &voice, SLOT(stop()));
 
-            } else if (device.compare(audio1->audioInput()) != 0) {
-                audio2->setAudioInput(device);
-                break;
-            }
-        }
-    }
-
-    // High Settings
-    QAudioEncoderSettings settings;
-    settings.setQuality(QMultimedia::VeryHighQuality);
-    settings.setEncodingMode(QMultimedia::ConstantQualityEncoding);
-    settings.setSampleRate(44100);
-
-    audio1->setAudioSettings(settings);
-    audio2->setAudioSettings(settings);
-
-    qDebug() << "Audio Source 1: " << audio1->audioInput();
-    qDebug() << "Audio Source 2: " << audio2->audioInput() << endl;
-
-    audioProbe1 = new QAudioProbe();
-    audioProbe2 = new QAudioProbe();
-    audioProbe1->setSource(audio1);
-    audioProbe2->setSource(audio2);
-
-    audio1->record();
-    audio2->record();
-
-    connect(audioProbe1, SIGNAL(audioBufferProbed(QAudioBuffer)), this, SLOT(updateAudioLevels(QAudioBuffer)));
-    connect(audioProbe2, SIGNAL(audioBufferProbed(QAudioBuffer)), this, SLOT(updateAudioLevels(QAudioBuffer)));
-
+    audioThread->start();
 }
 
-void MainWindow::updateAudioLevels(QAudioBuffer audioBuffer) {
+void MainWindow::setWaveform(){
+    ui->waveformQCP->plotLayout()->clear();
 
-//    const quint16 *audioData = audioBuffer.constData<quint16>();
-//    qDebug() << "audioData: " << (int) audioData;
+    QCPAxisRect *axis = new QCPAxisRect(ui->waveformQCP);
 
-//    int numSamples = audioBuffer.frameCount();
-//    qDebug() << "Frame count: " << numSamples;
+    waveform.keysRange.lower = 0.0;
+    waveform.keysRange.upper = 10.0;
 
+    waveform.valuesRange.lower = -0.5;
+    waveform.valuesRange.upper = 0.5;
 
-//    qDebug() << "Duration: " << audioBuffer.duration();
-//    qDebug() << "Frame count: " << audioBuffer.frameCount();
-//    qDebug() << "Start time: " << audioBuffer.startTime();
-//    qDebug() << "Sample type: " << audioBuffer.format().sampleType();
+    axis->setupFullAxesBox(true);
+    axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
+    axis->axis(QCPAxis::atTop)->setLabel("Voice Audio Waveform");
+    axis->axis(QCPAxis::atBottom)->setLabelColor(QColor(Qt::blue));
+    axis->axis(QCPAxis::atBottom)->setLabel("Time (s)");
+    axis->axis(QCPAxis::atLeft)->setLabelColor(QColor(Qt::blue));
+    axis->axis(QCPAxis::atLeft)->setLabel("Normalized Amplitude");
 
-//    if (sender() == audioProbe1) {
-//        ui->leftVolumeBar->setValue(0);
-//    } else {
-//        ui->rightVolumeBar->setValue(0);
-//    }
+    axis->axis(QCPAxis::atLeft)->setRange(waveform.valuesRange);
+    axis->axis(QCPAxis::atBottom)->setRange(waveform.keysRange);
 
+    waveform.graph = ui->waveformQCP->addGraph(axis->axis(QCPAxis::atBottom), axis->axis(QCPAxis::atLeft));
+    ui->waveformQCP->plotLayout()->addElement(0,0, axis);
+}
 
+void MainWindow::updateWaveform(AudioSample sample) {
+
+    QVector<double> time = sample.keys().toVector();
+    QVector<double> data = sample.values().toVector();
+
+    // Add  new datapoints to waveform
+    waveform.graph->addData(time, data);
+
+    waveform.graph->rescaleKeyAxis(true);
+    ui->waveformQCP->replot();
 }
 
 
@@ -767,13 +745,17 @@ void MainWindow::updateTongueTraj(LocaData locaData){
     ui->locaPlot->replot();
 }
 
-void MainWindow::clearTongueTraj() {
+void MainWindow::clearPlots() {
 
     // Clear all trajectory plots data
     for (int i = 0; i < 3; i++) {
         locaTrajPlots[i].graph->clearData();
         locaTimePlots[i].graph->clearData();
     }
+
+    // Clear Waveform
+    waveform.graph->clearData();
+    waveform.graph->keyAxis()->setRange(waveform.keysRange);
 }
 
 /* Manage Drop-down lists */
@@ -893,15 +875,6 @@ QString MainWindow::parseUtter(QString rawUtter) {
 void MainWindow::closeEvent(QCloseEvent *event){
 
     emit stopRecording();
-
-    // Terminate audio
-    if (audio1) {
-        audio1->stop();
-    }
-
-    if (audio2) {
-       audio2->stop();
-    }
 
     // Closing procedures
     event->accept();

@@ -21,7 +21,8 @@ SOURCES += main.cpp\
     ReadSensors.cpp \
     sensordisplay.cpp \
     videothread.cpp \
-    localization.cpp
+    localization.cpp \
+    voicemanager.cpp
 
 HEADERS  += TTS_GUI.h \
     qcustomplot.h \
@@ -31,7 +32,8 @@ HEADERS  += TTS_GUI.h \
     ReadSensors.h \
     sensordisplay.h \
     videothread.h \
-    localization.h
+    localization.h \
+    voicemanager.h
 
 FORMS    += \
     TTS_GUI.ui \
