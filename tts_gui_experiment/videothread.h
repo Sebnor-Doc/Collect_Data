@@ -51,17 +51,23 @@ private:
     VideoReadWorker readThread;
     bool saveFrame;
     short dispMode;
+    QString currentFilePath;
 
     // Video data
     QImage videoImg;
-    QList<QPixmap> playbackList;
-    int playbackIdx;
+
+
 
     // Frame characteristics
     int frame_width;
     int frame_height;
     int frame_rate;
     int fourCC;
+
+    // Replay
+    VideoCapture replayVideo;
+    QList<QPixmap> playbackList;
+    int playbackIdx;
 
     // Thread
     QMutex mutex;
@@ -80,11 +86,11 @@ private slots:
 
 signals:
     void processedImage(const QPixmap &image);
+    void replayFrameRange(int lower, int upper);
     void stopped();
     void finished();
 
 public:
-    int getNumOfFramesPlayback();
     ~VideoThread();
 };
 

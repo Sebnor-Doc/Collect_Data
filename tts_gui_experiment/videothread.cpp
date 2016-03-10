@@ -37,57 +37,75 @@ void VideoThread::saveVideo(bool save)
         video.release();
     }
 
-    // Clear list of frames
-    if (saveFrame) {
-        playbackList.clear();
-    }
-
     mutex.unlock();
 }
 
 void VideoThread::displayVideo(short mode)
 {
     mutex.lock();
+
     dispMode = mode;
+
+    connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
+
+    if (mode == 2) {
+        emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
+    }
+    else if (mode == 1) {
+        disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
+        replayVideo.open(currentFilePath.toStdString());      // Release is auto called by open()
+
+        int upperFrameIdx = static_cast<int>(replayVideo.get(CAP_PROP_FRAME_COUNT)) - 1;
+        emit replayFrameRange(0, upperFrameIdx);
+        updatePlaybackIdx(0);
+    }
+
     mutex.unlock();
 }
 
 void VideoThread::emitVideo(Mat *frame)
 {
-    // Convert Mat frame into a QPixmap for video feed
-    Mat procFrame;
-    cv::cvtColor(*frame, procFrame, CV_BGR2RGB);       // invert BGR to RGB
-    videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
-    QPixmap videoPixmap = QPixmap::fromImage(videoImg);
-
     // Handle frame saving during data collection
     if (saveFrame) {
         mutex.lock();
         video.write(*frame);
-        playbackList.append(videoPixmap);
+//        playbackList.append(videoPixmap);
         mutex.unlock();
     }
 
     // Emit proper image based on display mode to video feed in GUI
     if (dispMode == 0) {
+
+        // Convert Mat frame into a QPixmap for video feed
+        Mat procFrame;
+        cv::cvtColor(*frame, procFrame, CV_BGR2RGB);       // invert BGR to RGB
+        videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
+        QPixmap videoPixmap = QPixmap::fromImage(videoImg);
+
         emit processedImage(videoPixmap);
     }
-    else if (dispMode == 1) {
-        emit processedImage(playbackList.at(playbackIdx));
-    }
-    else {
-        emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
-    }
+//    else if (dispMode == 1) {
+//        emit processedImage(playbackList.at(playbackIdx));
+//    }
+//    else {
+//        emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
+//    }
 }
 
 void VideoThread::updatePlaybackIdx(int idx) {
-    mutex.lock();
-    playbackIdx = idx;
-    mutex.unlock();
-}
 
-int VideoThread::getNumOfFramesPlayback() {
-    return playbackList.size();
+    bool success = replayVideo.set(CAP_PROP_POS_FRAMES, idx);
+
+    if (success) {
+        Mat replayFrame;
+        replayVideo >> replayFrame;
+
+        cv::cvtColor(replayFrame, replayFrame, CV_BGR2RGB);       // invert BGR to RGB
+        QImage replayImg  = QImage((uchar*)replayFrame.data, replayFrame.cols, replayFrame.rows, replayFrame.step, QImage::Format_RGB888);
+        QPixmap replayPixmap = QPixmap::fromImage(replayImg);
+
+        emit processedImage(replayPixmap);
+    }
 }
 
 void VideoThread::stop()
@@ -102,9 +120,9 @@ void VideoThread::setFilename(QString filename)
         video.release();
     }
 
-    QString formatFilename = filename + "_video.avi";
+    currentFilePath = filename + "_video.avi";
 
-    video.open(formatFilename.toStdString(), fourCC, frame_rate, Size(frame_width,frame_height), true);
+    video.open(currentFilePath.toStdString(), fourCC, frame_rate, Size(frame_width,frame_height), true);
 }
 
 VideoThread::~VideoThread(){

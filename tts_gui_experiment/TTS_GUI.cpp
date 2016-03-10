@@ -460,8 +460,7 @@ void MainWindow::stopTrial(){
 
     // Manage video playback
     ui->videoPlaybackRadio->setEnabled(true);
-    ui->videoSlider->setRange(0, video.getNumOfFramesPlayback() - 1);
-    video.updatePlaybackIdx(0);
+//    video.updatePlaybackIdx(0);
 }
 
 
@@ -515,7 +514,10 @@ void MainWindow::setVideo() {
     connect(ui->videoHideRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
 
     // Manage playback
+    connect(&video, SIGNAL(replayFrameRange(int, int)), ui->videoSlider, SLOT(setRange(int, int)));
     connect(ui->videoSlider, SIGNAL(valueChanged(int)), &video, SLOT(updatePlaybackIdx(int)));
+
+
     ui->videoPlaybackRadio->setEnabled(false);
     ui->videoSlider->setEnabled(false);
 
