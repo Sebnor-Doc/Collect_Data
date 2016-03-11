@@ -136,6 +136,7 @@ signals:
     void save(bool);
     void fileName(QString);
     void stopRecording();
+    void videoMode(short);
 };
 
 #endif // TTS_GUI_H

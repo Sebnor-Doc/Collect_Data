@@ -460,7 +460,6 @@ void MainWindow::stopTrial(){
 
     // Manage video playback
     ui->videoPlaybackRadio->setEnabled(true);
-//    video.updatePlaybackIdx(0);
 }
 
 
@@ -512,11 +511,11 @@ void MainWindow::setVideo() {
     connect(ui->videoShowRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
     connect(ui->videoPlaybackRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
     connect(ui->videoHideRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
+    connect(this, SIGNAL(videoMode(short)), &video, SLOT(displayVideo(short)));
 
     // Manage playback
     connect(&video, SIGNAL(replayFrameRange(int, int)), ui->videoSlider, SLOT(setRange(int, int)));
     connect(ui->videoSlider, SIGNAL(valueChanged(int)), &video, SLOT(updatePlaybackIdx(int)));
-
 
     ui->videoPlaybackRadio->setEnabled(false);
     ui->videoSlider->setEnabled(false);
@@ -534,23 +533,24 @@ void MainWindow::videoManager() {
     ui->videoSlider->setValue(0);
     ui->videoSlider->setEnabled(false);
 
-
     // Set video display mode
     // 0 = Live feed ; 1 = Playback ; Other = No feed
-    int videoMode;
+    short mode;
 
     if (ui->videoShowRadio->isChecked()) {
-        videoMode = 0;
-    }
-    else if (ui->videoPlaybackRadio->isChecked()) {
-        ui->videoSlider->setEnabled(true);
-        videoMode = 1;
-    }
-    else {
-        videoMode = 2;
+        mode = 0;
     }
 
-    video.displayVideo(videoMode);
+    else if (ui->videoPlaybackRadio->isChecked()) {
+        ui->videoSlider->setEnabled(true);
+        mode = 1;
+    }
+
+    else {
+        mode = 2;
+    }
+
+    emit videoMode(mode);
 }
 
 

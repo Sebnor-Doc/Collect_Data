@@ -8,13 +8,10 @@
 
 void VideoThread::process()
 {
-    // Init variables
-    saveFrame = false;
-
     // Setup connections
     connect(&readThread, SIGNAL(cameraInfo(int, int, int, int)), this, SLOT(setCameraInfo(int, int, int, int)));
-    connect(this, SIGNAL(stopped()), &readThread, SLOT(stop()), Qt::DirectConnection);
     connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
+    connect(this, SIGNAL(stopped()), &readThread, SLOT(stop()), Qt::DirectConnection);
 
     // Start thread that reads video frames continuously
     readThread.start(QThread::HighPriority);
@@ -27,13 +24,15 @@ void VideoThread::setCameraInfo(int frame_width, int frame_height, int fourCC, i
     this->frame_rate    = fps;
 }
 
-void VideoThread::saveVideo(bool save)
+void VideoThread::saveVideo(bool saveVal)
 {
     mutex.lock();
-    saveFrame = save;
 
-    // Release previous video writer if still open
-    if (!saveFrame && video.isOpened()) {
+    if (saveVal) {
+        connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(saveFrame(Mat*)));
+    }
+    else {
+        disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(saveFrame(Mat*)));
         video.release();
     }
 
@@ -44,20 +43,27 @@ void VideoThread::displayVideo(short mode)
 {
     mutex.lock();
 
-    dispMode = mode;
-
-    connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
-
-    if (mode == 2) {
-        emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
+    if(mode == 0) {
+        connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
     }
+
     else if (mode == 1) {
         disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
-        replayVideo.open(currentFilePath.toStdString());      // Release is auto called by open()
 
+        replayVideo.open(currentFilePath.toStdString());      // Release is auto called by open()
         int upperFrameIdx = static_cast<int>(replayVideo.get(CAP_PROP_FRAME_COUNT)) - 1;
         emit replayFrameRange(0, upperFrameIdx);
         updatePlaybackIdx(0);
+    }
+
+    else if (mode == 2) {
+        disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
+        emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
+    }
+
+    else {
+        connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
+        qDebug() << "ERROR: displayVideo arg is not valid";
     }
 
     mutex.unlock();
@@ -65,31 +71,19 @@ void VideoThread::displayVideo(short mode)
 
 void VideoThread::emitVideo(Mat *frame)
 {
-    // Handle frame saving during data collection
-    if (saveFrame) {
-        mutex.lock();
-        video.write(*frame);
-//        playbackList.append(videoPixmap);
-        mutex.unlock();
-    }
+    // Convert Mat frame into a QPixmap for video feed
+    Mat procFrame;
+    cv::cvtColor(*frame, procFrame, CV_BGR2RGB);       // invert BGR to RGB
+    QImage videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
+    QPixmap videoPixmap = QPixmap::fromImage(videoImg);
 
-    // Emit proper image based on display mode to video feed in GUI
-    if (dispMode == 0) {
+    emit processedImage(videoPixmap);
+}
 
-        // Convert Mat frame into a QPixmap for video feed
-        Mat procFrame;
-        cv::cvtColor(*frame, procFrame, CV_BGR2RGB);       // invert BGR to RGB
-        videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
-        QPixmap videoPixmap = QPixmap::fromImage(videoImg);
-
-        emit processedImage(videoPixmap);
-    }
-//    else if (dispMode == 1) {
-//        emit processedImage(playbackList.at(playbackIdx));
-//    }
-//    else {
-//        emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
-//    }
+void VideoThread::saveFrame(Mat *frame){
+    mutex.lock();
+    video.write(*frame);
+    mutex.unlock();
 }
 
 void VideoThread::updatePlaybackIdx(int idx) {
@@ -108,21 +102,16 @@ void VideoThread::updatePlaybackIdx(int idx) {
     }
 }
 
+void VideoThread::setFilename(QString filename)
+{
+    currentFilePath = filename + "_video.avi";
+    video.open(currentFilePath.toStdString(), fourCC, frame_rate, Size(frame_width,frame_height), true);
+}
+
 void VideoThread::stop()
 {
     saveVideo(false);
     emit stopped();
-}
-
-void VideoThread::setFilename(QString filename)
-{
-    if(video.isOpened()) {
-        video.release();
-    }
-
-    currentFilePath = filename + "_video.avi";
-
-    video.open(currentFilePath.toStdString(), fourCC, frame_rate, Size(frame_width,frame_height), true);
 }
 
 VideoThread::~VideoThread(){

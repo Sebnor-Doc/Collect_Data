@@ -49,14 +49,7 @@ private:
     // General
     VideoWriter video;
     VideoReadWorker readThread;
-    bool saveFrame;
-    short dispMode;
     QString currentFilePath;
-
-    // Video data
-    QImage videoImg;
-
-
 
     // Frame characteristics
     int frame_width;
@@ -76,13 +69,14 @@ public slots:
     void process();
     void setCameraInfo(int frame_width, int frame_height, int fourCC, int fps);
     void setFilename(QString filename);
-    void saveVideo(bool save);
+    void saveVideo(bool saveVal);
     void displayVideo(short mode);
     void updatePlaybackIdx(int);
     void stop();
 
 private slots:
     void emitVideo(Mat* frame);
+    void saveFrame(Mat* frame);
 
 signals:
     void processedImage(const QPixmap &image);
