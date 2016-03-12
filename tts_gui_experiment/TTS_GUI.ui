@@ -436,6 +436,21 @@ p, li { white-space: pre-wrap; }
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
+          <widget class="QRadioButton" name="videoShowRadio">
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>Show Video</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QRadioButton" name="videoHideRadio">
            <property name="font">
             <font>
@@ -460,19 +475,17 @@ p, li { white-space: pre-wrap; }
           </widget>
          </item>
          <item>
-          <widget class="QRadioButton" name="videoShowRadio">
-           <property name="font">
-            <font>
-             <pointsize>10</pointsize>
-            </font>
+          <spacer name="verticalSpacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
            </property>
-           <property name="text">
-            <string>Show Video</string>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
            </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
+          </spacer>
          </item>
         </layout>
        </widget>
