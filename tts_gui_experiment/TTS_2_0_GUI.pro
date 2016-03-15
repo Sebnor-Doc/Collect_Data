@@ -4,9 +4,9 @@
 #
 #-------------------------------------------------
 
-TARGET = MSCS
-VERSION = 1.1
-TEMPLATE = app
+TARGET      = MSCS
+VERSION     = 2.0
+TEMPLATE    = app
 
 
 QT      += core gui printsupport widgets serialport multimedia multimediawidgets xml

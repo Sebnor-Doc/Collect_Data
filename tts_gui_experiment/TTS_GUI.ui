@@ -23,7 +23,7 @@
       <property name="alignment">
        <set>Qt::AlignCenter</set>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,1,1,1,2,2,1">
+      <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,1,1,1,2,2,1,2,1">
        <item>
         <widget class="QPushButton" name="showMagButton">
          <property name="sizePolicy">
@@ -237,6 +237,53 @@ Sensors</string>
          </item>
          <item>
           <widget class="QPlainTextEdit" name="expFileEdit"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="vfbGroupBox">
+         <property name="title">
+          <string>Bio-Feedback</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <item>
+           <widget class="QCheckBox" name="checkBox">
+            <property name="text">
+             <string>ON</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="refRadio">
+            <property name="text">
+             <string>Reference</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="subRadio">
+            <property name="text">
+             <string>Subject</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="refPathLayout">
+         <item>
+          <widget class="QLabel" name="refPathLabel">
+           <property name="text">
+            <string>Reference Path</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPlainTextEdit" name="refPathEdit"/>
          </item>
         </layout>
        </item>
