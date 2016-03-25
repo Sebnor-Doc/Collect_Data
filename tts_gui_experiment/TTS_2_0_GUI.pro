@@ -35,7 +35,8 @@ HEADERS  += TTS_GUI.h \
     videothread.h \
     localization.h \
     voicemanager.h \
-    vfbmanager.h
+    vfbmanager.h \
+    typedef.h
 
 FORMS    += \
     TTS_GUI.ui \

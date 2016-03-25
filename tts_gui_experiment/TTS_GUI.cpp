@@ -665,11 +665,15 @@ void MainWindow::setTongueTraj()
         ui->locaPlot->plotLayout()->addElement(0, i, locaTrajPlots[i].axis);
         ui->locaPlot->plotLayout()->addElement(1, i, locaTimePlots[i].axis);
 
-        // Create and add Localization graphs (trajectory + leading dot)
+        // Create and add Localization graphs (trajectory + reference + leading dot)
         locaTrajPlots[i].graph = new QCPCurve(locaTrajPlots[i].axis->axis(QCPAxis::atBottom),
                                           locaTrajPlots[i].axis->axis(QCPAxis::atLeft));
 
+        locaTrajPlots[i].refCurve = new QCPCurve(locaTrajPlots[i].axis->axis(QCPAxis::atBottom),
+                                              locaTrajPlots[i].axis->axis(QCPAxis::atLeft));
+
         ui->locaPlot->addPlottable(locaTrajPlots[i].graph);
+        ui->locaPlot->addPlottable(locaTrajPlots[i].refCurve);
 
         locaTrajPlots[i].leadDot = ui->locaPlot->addGraph(locaTrajPlots[i].axis->axis(QCPAxis::atBottom),
                                                     locaTrajPlots[i].axis->axis(QCPAxis::atLeft));
@@ -677,11 +681,15 @@ void MainWindow::setTongueTraj()
         // Create and add Localization vs. Time graph
         locaTimePlots[i].graph = ui->locaPlot->addGraph(locaTimePlots[i].axis->axis(QCPAxis::atBottom),
                                                     locaTimePlots[i].axis->axis(QCPAxis::atLeft));
+
+        locaTimePlots[i].refGraph = ui->locaPlot->addGraph(locaTimePlots[i].axis->axis(QCPAxis::atBottom),
+                                                               locaTimePlots[i].axis->axis(QCPAxis::atLeft));
     }
 
     // Set trajectory plots attributes
     locaTrajPlots[0].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
-    locaTrajPlots[0].graph->setPen(QPen(Qt::blue));
+    locaTrajPlots[0].graph->setPen(QPen(Qt::red));
+    locaTrajPlots[0].refCurve->setPen(QPen(Qt::darkGreen));
     locaTrajPlots[0].leadDot->setPen(QPen(Qt::black));
     locaTrajPlots[0].leadDot->setLineStyle(QCPGraph::lsNone);
     locaTrajPlots[0].leadDot->setScatterStyle(QCPScatterStyle::ssDisc);
@@ -692,7 +700,8 @@ void MainWindow::setTongueTraj()
     locaTrajPlots[0].axis->axis(QCPAxis::atLeft)->setRange(0,10);
 
     locaTrajPlots[1].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::darkGreen));
-    locaTrajPlots[1].graph->setPen(QPen(Qt::darkGreen));
+    locaTrajPlots[1].graph->setPen(QPen(Qt::red));
+    locaTrajPlots[1].refCurve->setPen(QPen(Qt::darkGreen));
     locaTrajPlots[1].leadDot->setPen(QPen(Qt::black));
     locaTrajPlots[1].leadDot->setLineStyle(QCPGraph::lsNone);
     locaTrajPlots[1].leadDot->setScatterStyle(QCPScatterStyle::ssDisc);
@@ -704,6 +713,7 @@ void MainWindow::setTongueTraj()
 
     locaTrajPlots[2].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::red));
     locaTrajPlots[2].graph->setPen(QPen(Qt::red));
+    locaTrajPlots[2].refCurve->setPen(QPen(Qt::darkGreen));
     locaTrajPlots[2].leadDot->setPen(QPen(Qt::black));
     locaTrajPlots[2].leadDot->setLineStyle(QCPGraph::lsNone);
     locaTrajPlots[2].leadDot->setScatterStyle(QCPScatterStyle::ssDisc);
@@ -714,26 +724,39 @@ void MainWindow::setTongueTraj()
     locaTrajPlots[2].axis->axis(QCPAxis::atLeft)->setRange(-5,0);
 
     // Set Time series attributes
+    locaTimePlots[0].timeRange = new QCPRange(0,5);
+    locaTimePlots[0].YRange = new QCPRange(-5,5);
+
     locaTimePlots[0].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
-    locaTimePlots[0].graph->setPen(QPen(Qt::blue));
+    locaTimePlots[0].graph->setPen(QPen(Qt::red));
+    locaTimePlots[0].refGraph->setPen(QPen(Qt::darkGreen));
     locaTimePlots[0].axis->axis(QCPAxis::atTop)->setLabel("X (time)");
     locaTimePlots[0].axis->axis(QCPAxis::atBottom)->setLabel("time(s)");
+    locaTimePlots[0].axis->axis(QCPAxis::atBottom)->setRange(*locaTimePlots[0].timeRange);
     locaTimePlots[0].axis->axis(QCPAxis::atLeft)->setLabel("X(cm)");
-    locaTimePlots[0].axis->axis(QCPAxis::atLeft)->setRange(-5,5);
+    locaTimePlots[0].axis->axis(QCPAxis::atLeft)->setRange(*locaTimePlots[0].YRange);
 
-    locaTimePlots[1].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::darkGreen));
-    locaTimePlots[1].graph->setPen(QPen(Qt::darkGreen));
+    locaTimePlots[1].timeRange = new QCPRange(0,5);
+    locaTimePlots[1].YRange = new QCPRange(0,10);
+    locaTimePlots[1].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
+    locaTimePlots[1].graph->setPen(QPen(Qt::red));
+    locaTimePlots[1].refGraph->setPen(QPen(Qt::darkGreen));
     locaTimePlots[1].axis->axis(QCPAxis::atTop)->setLabel("Y (time)");
     locaTimePlots[1].axis->axis(QCPAxis::atBottom)->setLabel("time(s)");
+    locaTimePlots[1].axis->axis(QCPAxis::atBottom)->setRange(*locaTimePlots[1].timeRange);
     locaTimePlots[1].axis->axis(QCPAxis::atLeft)->setLabel("Y(cm)");
-    locaTimePlots[1].axis->axis(QCPAxis::atLeft)->setRange(0,10);
+    locaTimePlots[1].axis->axis(QCPAxis::atLeft)->setRange(*locaTimePlots[1].YRange);
 
-    locaTimePlots[2].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::red));
+    locaTimePlots[2].timeRange = new QCPRange(0,5);
+    locaTimePlots[2].YRange = new QCPRange(-5,0);
+    locaTimePlots[2].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
     locaTimePlots[2].graph->setPen(QPen(Qt::red));
+    locaTimePlots[2].refGraph->setPen(QPen(Qt::darkGreen));
     locaTimePlots[2].axis->axis(QCPAxis::atTop)->setLabel("Z (time)");
     locaTimePlots[2].axis->axis(QCPAxis::atBottom)->setLabel("time(s)");
+    locaTimePlots[2].axis->axis(QCPAxis::atBottom)->setRange(*locaTimePlots[2].timeRange);
     locaTimePlots[2].axis->axis(QCPAxis::atLeft)->setLabel("Z(cm)");
-    locaTimePlots[2].axis->axis(QCPAxis::atLeft)->setRange(-5,0);
+    locaTimePlots[2].axis->axis(QCPAxis::atLeft)->setRange(*locaTimePlots[2].YRange);
 }
 
 void MainWindow::updateTongueTraj(LocaData locaData){
@@ -781,12 +804,37 @@ void MainWindow::updateTongueTraj(LocaData locaData){
     ui->locaPlot->replot();
 }
 
+void MainWindow::updateRefTongueTraj()
+{
+    QVector<LocaData> refLocaData = vfbManager.getRefLocaData();
+
+    // Add point to localization graphs
+    foreach (LocaData data, refLocaData ) {
+
+        locaTrajPlots[0].refCurve->addData(data.time, data.x, data.y);
+        locaTrajPlots[1].refCurve->addData(data.time, data.x, data.z);
+        locaTrajPlots[2].refCurve->addData(data.time, data.y, data.z);
+
+        locaTimePlots[0].refGraph->addData(data.time, data.x);
+        locaTimePlots[1].refGraph->addData(data.time, data.y);
+        locaTimePlots[2].refGraph->addData(data.time, data.z);
+    }
+
+    // resize graph
+    ui->locaPlot->replot();
+}
+
 void MainWindow::clearPlots() {
 
     // Clear all trajectory plots data
     for (int i = 0; i < 3; i++) {
         locaTrajPlots[i].graph->clearData();
+        locaTrajPlots[i].refCurve->clearData();
+
         locaTimePlots[i].graph->clearData();
+        locaTimePlots[i].refGraph->clearData();
+        locaTimePlots[i].axis->axis(QCPAxis::atBottom)->setRange(*locaTimePlots[i].timeRange);
+        locaTimePlots[i].axis->axis(QCPAxis::atLeft)->setRange(*locaTimePlots[i].YRange);
     }
 
     // Clear Waveform
@@ -961,5 +1009,5 @@ void MainWindow::on_playRefButton_clicked()
 
     // Update Tongue trajectory with reference
     clearPlots();
-//    updateRefTongueTraj();
+    updateRefTongueTraj();
 }

@@ -56,6 +56,7 @@ private:
 
     struct Waveform{
         QCPGraph *graph;
+        QCPGraph *refGraph;
         QCPRange keysRange;
         QCPRange valuesRange;
     };
@@ -81,6 +82,7 @@ private:
     // Display Tongue Trajectory
     struct LocaTrajPlot {
         QCPCurve *graph;    // Keep the historic of tongue movement
+        QCPCurve *refCurve;
         QCPGraph *leadDot;  // disc tracer of current magnet position
         QCPAxisRect *axis;
     };
@@ -89,7 +91,10 @@ private:
 
     struct LocaTimePlot {
         QCPGraph *graph;
+        QCPGraph *refGraph;
         QCPAxisRect *axis;
+        QCPRange *timeRange;
+        QCPRange *YRange;
     };
 
     LocaTimePlot locaTimePlots[3];
@@ -106,25 +111,24 @@ public:
 
 
 private slots:
+    void sensorDisplayClosed();
+    void saveEMF();
+
     void on_configButton_clicked();
     void on_measureEMFButton_clicked();
     void on_startStopTrialButton_toggled(bool checked);
     void on_classBox_currentIndexChanged(int index);
     void on_utteranceBox_currentIndexChanged(int index);
-    void updateWaveform(AudioSample sample);
     void on_showMagButton_toggled(bool checked);
-    void sensorDisplayClosed();
-    void saveEMF();
     void on_trialBox_currentIndexChanged(int index);
-    void updateTongueTraj(LocaData locaData);
-    void videoManager();
-
-
     void on_vfbActivationCheckBox_toggled(bool checked);
-
     void on_vfbSubModeRadio_toggled(bool checked);
-
     void on_playRefButton_clicked();
+
+    void updateTongueTraj(LocaData locaData);
+    void updateRefTongueTraj();
+    void updateWaveform(AudioSample sample);
+    void videoManager();
 
 private:
     void loadConfig();

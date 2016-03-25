@@ -147,6 +147,40 @@ void VfbManager::playAudio()
     }
 }
 
+QVector<LocaData> VfbManager::getRefLocaData()
+{
+    QVector<LocaData> refLocaData;
+
+    QString refTraj = refOutPath + "_loca.txt";
+    QFile input(refTraj);
+    QTextStream in(&input);
+
+    if (!input.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "Cannot open reference trajectory file located at:\n" << refTraj << endl;
+        return refLocaData;
+    }
+
+    while(!in.atEnd())
+    {
+        QStringList locaSample = in.readLine().split(" ");
+
+        // Convert data
+        LocaData locaData;
+        locaData.x      = locaSample.at(0).toDouble() * 100.0;
+        locaData.y      = locaSample.at(1).toDouble() * 100.0;
+        locaData.z      = locaSample.at(2).toDouble() * 100.0;
+        locaData.theta  = locaSample.at(3).toDouble() * 1.0;
+        locaData.phi    = locaSample.at(4).toDouble() * 1.0;
+        locaData.time   = locaSample.at(5).toDouble() / 1000.0;
+
+        refLocaData.append(locaData);
+    }
+
+    input.close();
+
+    return refLocaData;
+}
+
 void VfbManager::setSubOutPath(QString path)
 {
     subOutPath = path;

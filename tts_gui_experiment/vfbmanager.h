@@ -3,6 +3,8 @@
 
 #include <QObject>
 #include <QProcess>
+#include <QVector>
+#include <typedef.h>
 
 class VfbManager : public QObject
 {
@@ -24,6 +26,7 @@ public:
     void updateXML(int selection);
     void startVFBProgram();
     void playAudio();
+    QVector<LocaData> getRefLocaData();
 
 private:
     QString vfbFilePath;

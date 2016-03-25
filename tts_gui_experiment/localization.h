@@ -16,12 +16,7 @@
 using namespace cv;
 
 
-struct LocaData {
-    double x, y, z, theta, phi;
-    qint64 time;
-    quint8 id;
-    QString filename;
-};
+
 
 Q_DECLARE_METATYPE(LocaData)
 const int dontcare3 = qRegisterMetaType<LocaData>();
