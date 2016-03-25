@@ -199,6 +199,11 @@ void VfbManager::getAudioSample()
     audioFile->start();
 }
 
+QString VfbManager::getRefOutPath()
+{
+    return refOutPath;
+}
+
 void VfbManager::readAudioBuffer()
 {
     QAudioBuffer audioBuffer = audioFile->read();

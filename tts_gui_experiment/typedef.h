@@ -12,7 +12,7 @@ struct MagData{
     qint64 time;
     quint8 id;
 };
-const int dontcare = qRegisterMetaType<MagData>("MagData"); // Needed for Signal/Slot connections
+const int dontcare = qRegisterMetaType<MagData>("MagData");
 
 
 // Audio data
@@ -23,11 +23,13 @@ const int dontcare4 = qRegisterMetaType< AudioSample >("AudioSample");
 // Localization datapoint
 struct LocaData {
     double x, y, z, theta, phi;
-    qint64 time;
+    double time;
     quint8 id;
     QString filename;
 };
 
+enum VideoMode { LIVE_FEED, REPLAY_SUB, REPLAY_REF, NO_FEED };
+const int dontcare5 = qRegisterMetaType<VideoMode>("VideoMode");
 
 #endif // TYPEDEF
 

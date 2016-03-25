@@ -540,7 +540,7 @@ void MainWindow::setVideo() {
     connect(ui->videoShowRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
     connect(ui->videoPlaybackRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
     connect(ui->videoHideRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
-    connect(this, SIGNAL(videoMode(short)), &video, SLOT(displayVideo(short)));
+    connect(this, SIGNAL(videoMode(VideoMode)), &video, SLOT(displayVideo(VideoMode)));
 
     // Manage playback
     connect(&video, SIGNAL(replayFrameRange(int, int)), ui->videoSlider, SLOT(setRange(int, int)));
@@ -564,19 +564,19 @@ void MainWindow::videoManager() {
 
     // Set video display mode
     // 0 = Live feed ; 1 = Playback ; Other = No feed
-    short mode;
+    VideoMode mode;
 
     if (ui->videoShowRadio->isChecked()) {
-        mode = 0;
+        mode = LIVE_FEED;
     }
 
     else if (ui->videoPlaybackRadio->isChecked()) {
         ui->videoSlider->setEnabled(true);
-        mode = 1;
+        mode = REPLAY_SUB;
     }
 
     else {
-        mode = 2;
+        mode = NO_FEED;
     }
 
     emit videoMode(mode);
@@ -1015,6 +1015,7 @@ void MainWindow::on_vfbSubModeRadio_toggled(bool checked)
 void MainWindow::on_playRefButton_clicked()
 {
     setFilePath();
+//    emit subOutPathSig(vfbManager.getRefOutPath());
 
     vfbManager.playAudio();
 
@@ -1026,5 +1027,7 @@ void MainWindow::on_playRefButton_clicked()
     vfbManager.getAudioSample();
     connect(&vfbManager, SIGNAL(audioSample(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
 
-
+    // Update video feed
+    video.setFilename(vfbManager.getRefOutPath());
+    emit videoMode(REPLAY_REF);
 }

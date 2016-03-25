@@ -7,6 +7,7 @@
 
 // General
 #include <QImage>
+#include <typedef.h>
 
 // OpenCV
 #include<opencv2/core/core.hpp>
@@ -70,7 +71,7 @@ public slots:
     void setCameraInfo(int frame_width, int frame_height, int fourCC, int fps);
     void setFilename(QString filename);
     void saveVideo(bool saveVal);
-    void displayVideo(short mode);
+    void displayVideo(VideoMode mode);
     void updatePlaybackIdx(int);
     void stop();
 

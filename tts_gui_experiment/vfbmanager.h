@@ -30,6 +30,8 @@ public:
     QVector<LocaData> getRefLocaData();
     void getAudioSample();
 
+    QString getRefOutPath();
+
 
 private:
     QString vfbFilePath;

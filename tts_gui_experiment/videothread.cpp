@@ -39,24 +39,42 @@ void VideoThread::saveVideo(bool saveVal)
     mutex.unlock();
 }
 
-void VideoThread::displayVideo(short mode)
+void VideoThread::displayVideo(VideoMode mode)
 {
     mutex.lock();
 
-    if(mode == 0) {
+    if(mode == LIVE_FEED) {
         connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
     }
 
-    else if (mode == 1) {
+    else if (mode == REPLAY_SUB || mode == REPLAY_REF) {
         disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
 
-        replayVideo.open(currentFilePath.toStdString());      // Release is auto called by open()
+        bool success = replayVideo.open(currentFilePath.toStdString());      // Release is auto called by open()
         int upperFrameIdx = static_cast<int>(replayVideo.get(CAP_PROP_FRAME_COUNT)) - 1;
-        emit replayFrameRange(0, upperFrameIdx);
-        updatePlaybackIdx(0);
+        qDebug() << "Ref Video Path: " << currentFilePath;
+        qDebug() << "Success opening Video: " << success;
+        qDebug() << "upperFrameIdx: " << upperFrameIdx;
+
+        if (mode == REPLAY_SUB) {
+            emit replayFrameRange(0, upperFrameIdx);
+            updatePlaybackIdx(0);
+        }
+
+        else if (mode == REPLAY_REF) {
+
+            int fps = frame_rate;
+            int waitBtwFrames = static_cast<int>(1000.0 / fps);         // Wait between Frames in Milliseconds
+
+            for (int frameIdx = 0; frameIdx <= upperFrameIdx; frameIdx++) {
+
+                updatePlaybackIdx(frameIdx);
+                QThread::msleep(waitBtwFrames);
+            }
+        }
     }
 
-    else if (mode == 2) {
+    else if (mode == NO_FEED) {
         disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
         emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
     }

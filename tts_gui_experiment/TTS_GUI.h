@@ -153,7 +153,7 @@ signals:
     void save(bool);
     void subOutPathSig(QString);
     void stopRecording();
-    void videoMode(short);
+    void videoMode(VideoMode);
 };
 
 #endif // TTS_GUI_H
