@@ -22,7 +22,8 @@ SOURCES += main.cpp\
     sensordisplay.cpp \
     videothread.cpp \
     localization.cpp \
-    voicemanager.cpp
+    voicemanager.cpp \
+    vfbmanager.cpp
 
 HEADERS  += TTS_GUI.h \
     qcustomplot.h \
@@ -33,7 +34,8 @@ HEADERS  += TTS_GUI.h \
     sensordisplay.h \
     videothread.h \
     localization.h \
-    voicemanager.h
+    voicemanager.h \
+    vfbmanager.h
 
 FORMS    += \
     TTS_GUI.ui \

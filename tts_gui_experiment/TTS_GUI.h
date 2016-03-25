@@ -12,6 +12,7 @@
 #include "videothread.h"
 #include "localization.h"
 #include "voicemanager.h"
+#include "vfbmanager.h"
 
 #include <QVector>
 #include <QAudioRecorder>
@@ -44,9 +45,15 @@ private:
     ReadSensors rs;
     VideoThread video;
     Localization loca;
-    VoiceManager voice;
+
+    // Mode selection
+    enum Mode { NO_VFB, VFB_REF, VFB_SUB };
+    Mode mode;
+    VfbManager vfbManager;
 
     // Audio
+    VoiceManager voice;
+
     struct Waveform{
         QCPGraph *graph;
         QCPRange keysRange;
@@ -65,7 +72,7 @@ private:
     QString experiment_root;
     QString experiment_class;
     QString experiment_utter;
-    QString experiment_output_path;
+    QString subOutPath;
     QString emfFile;
 
     // Display sensor UI
@@ -113,6 +120,12 @@ private slots:
     void videoManager();
 
 
+    void on_vfbActivationCheckBox_toggled(bool checked);
+
+    void on_vfbSubModeRadio_toggled(bool checked);
+
+    void on_playRefButton_clicked();
+
 private:
     void loadConfig();
     void loadCalibration(QString calibFilename);
@@ -134,7 +147,7 @@ private:
  * *************************** */
 signals:
     void save(bool);
-    void fileName(QString);
+    void subOutPathSig(QString);
     void stopRecording();
     void videoMode(short);
 };

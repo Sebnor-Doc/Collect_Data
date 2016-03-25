@@ -30,13 +30,17 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     ui->startStopTrialButton->setEnabled(false);
     ui->measureEMFButton->setEnabled(false);
 
+    // Set initial status of VFB
+    mode = NO_VFB;
+    on_vfbActivationCheckBox_toggled(false);
+
     // Connect to Mojo
     QThread *magThread = new QThread(this);
     rs.moveToThread(magThread);
 
     connect(magThread, SIGNAL(started()), &rs, SLOT(process()));
     connect(this, SIGNAL(save(bool)), &rs, SLOT(saveMag(bool)));
-    connect(this, SIGNAL(fileName(QString)), &rs, SLOT(setSubFilename(QString)));
+    connect(this, SIGNAL(subOutPathSig(QString)), &rs, SLOT(setSubFilename(QString)));
 
     connect(this, SIGNAL(stopRecording()), &rs, SLOT(stop()));
     connect(&rs, SIGNAL(finished()), magThread, SLOT(quit()));
@@ -52,7 +56,6 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
 
     // Initialize Tongue trajectory display
     setTongueTraj();
-
 }
 
 
@@ -72,7 +75,7 @@ void MainWindow::on_configButton_clicked()
 
     connect(locaThread, SIGNAL(started()), &loca, SLOT(start()));
     connect(&rs, SIGNAL(dataToLocalize(MagData)), &loca, SLOT(processMag(MagData)));
-    connect(this, SIGNAL(fileName(QString)), &loca, SLOT(setFilename(QString)));
+    connect(this, SIGNAL(subOutPathSig(QString)), &loca, SLOT(setFilename(QString)));
     connect(&loca, SIGNAL(packetLocalized(LocaData)), this, SLOT(updateTongueTraj(LocaData)));
 
     locaThread->start();
@@ -80,6 +83,19 @@ void MainWindow::on_configButton_clicked()
     // Set state of buttons
     ui->measureEMFButton->setEnabled(true);
     ui->configButton->setEnabled(false);
+
+    if (mode == VFB_SUB) {
+        // Set general parameters
+        vfbManager.setVfbFilePath(QCoreApplication::applicationDirPath() + "/vfb.xml");
+        vfbManager.setSubId( ui->subNbEdit->text().toInt() );
+        vfbManager.setNumTrials( numTrials );
+
+        vfbManager.updateXML(0);        // Set vfb.xml file general properties
+        vfbManager.startVFBProgram();   // Start VFB.exe program
+        ui->playRefButton->setEnabled(true);
+
+        connect(this, SIGNAL(subOutPathSig(QString)), &vfbManager, SLOT(setSubOutPath(QString)));
+    }
 }
 
 void MainWindow::loadConfig() {
@@ -137,6 +153,7 @@ void MainWindow::loadConfig() {
 
     // Set others
     ui->subPathEdit->setPlainText(root.firstChildElement("data").text());
+    ui->refPathEdit->setPlainText(root.firstChildElement("referenceRoot").text());
     ui->subNbEdit->setText("1");
 }
 
@@ -199,7 +216,9 @@ void MainWindow::setupExperiment()
     loadExperimentFile(ui->expFileEdit->toPlainText());
 
     // Create folder structure to house experimental data
-    experiment_root = ui->subPathEdit->toPlainText() + "/Sub" + ui->subNbEdit->text();
+    QString folderPrefix = (mode == VFB_REF) ? "Ref" : "Sub";
+
+    experiment_root = ui->subPathEdit->toPlainText() + "/" + folderPrefix + ui->subNbEdit->text();
 
     if (!QDir().mkdir(experiment_root)) {
         qDebug() << "Subject root folder already exists: " << experiment_root;
@@ -248,6 +267,10 @@ void MainWindow::setupExperiment()
     for (int trial = 1; trial <= numTrials; trial++) {
         // Populate trial numbers
         ui->trialBox->addItem(QString::number(trial) + " / " + QString::number(numTrials));
+    }
+
+    if (mode == VFB_SUB) {
+        vfbManager.setRefRootPath(ui->refPathEdit->toPlainText());
     }
 
     // Set instance variables for folder/file paths
@@ -380,6 +403,7 @@ void MainWindow::saveEMF() {
     ui->startStopTrialButton->setEnabled(true);
 }
 
+
 /* Data collection */
 void MainWindow::on_startStopTrialButton_toggled(bool checked)
 {
@@ -395,7 +419,7 @@ void MainWindow::on_startStopTrialButton_toggled(bool checked)
 void MainWindow::beginTrial(){
     // Update output file paths
     setFilePath();
-    emit fileName(experiment_output_path);
+    emit subOutPathSig(subOutPath);
 
     //Color the boxes
     QString formatUtterance = QString("<font size=\"34\" color=\"red\">%1</font>")
@@ -414,8 +438,12 @@ void MainWindow::beginTrial(){
     // Send signal to start saving
     emit save(true);
 
-    // Reset tongue trajectory graph
+    // Reset plots
     clearPlots();
+
+    if (mode == VFB_SUB) {
+        vfbManager.updateXML(1);        // Update Visual Feedback XML file
+    }
 }
 
 void MainWindow::stopTrial(){
@@ -487,6 +515,7 @@ void MainWindow::sensorDisplayClosed(){
     ui->showMagButton->setChecked(false);
 }
 
+
 /* Video */
 void MainWindow::setVideo() {
 
@@ -505,7 +534,7 @@ void MainWindow::setVideo() {
 
     // Manage saving status during data collection
     connect(this, SIGNAL(save(bool)), &video, SLOT(saveVideo(bool)));
-    connect(this, SIGNAL(fileName(QString)), &video, SLOT(setFilename(QString)));
+    connect(this, SIGNAL(subOutPathSig(QString)), &video, SLOT(setFilename(QString)));
 
     // Select a radio button calls videoManager to set the display mode
     connect(ui->videoShowRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
@@ -569,7 +598,7 @@ void MainWindow::setAudio(){
 
     // Manage saving status during data collection
     connect(this, SIGNAL(save(bool)), &voice, SLOT(save(bool)));
-    connect(this, SIGNAL(fileName(QString)), &voice, SLOT(setFilename(QString)));
+    connect(this, SIGNAL(subOutPathSig(QString)), &voice, SLOT(setFilename(QString)));
     connect(this, SIGNAL(stopRecording()), &voice, SLOT(stop()));
 
     audioThread->start();
@@ -618,6 +647,8 @@ void MainWindow::updateWaveform(AudioSample sample) {
 void MainWindow::setTongueTraj()
 {
     ui->locaPlot->plotLayout()->clear();
+    ui->locaPlot->setInteraction(QCP::iRangeDrag, true);
+    ui->locaPlot->setInteraction(QCP::iRangeZoom, true);
 
     // Set plots
     for (int i = 0; i < 3; i++) {
@@ -733,15 +764,18 @@ void MainWindow::updateTongueTraj(LocaData locaData){
     locaTimePlots[2].graph->addData(timeSec, z);
 
     // remove data of lines that's outside visible range:
-    double lowerBound = timeSec - 10;
+//    double lowerBound = timeSec - 10;
+    double lowerBound = timeSec - 4;
 
     for (int i = 0; i < 3; i++) {
         if (lowerBound > 0) {
-            locaTimePlots[i].graph->removeDataBefore(lowerBound);
+//            locaTimePlots[i].graph->removeDataBefore(lowerBound);
+            locaTimePlots[i].axis->axis(QCPAxis::atBottom)->setRange(lowerBound, timeSec+1);
         }
 
         // make key axis range scroll with the data (at a constant range size of 8):
-        locaTimePlots[i].axis->axis(QCPAxis::atBottom)->setRange(timeSec, 10, Qt::AlignRight);
+//        locaTimePlots[i].axis->axis(QCPAxis::atBottom)->setRange(timeSec, 10, Qt::AlignRight);
+
     }
 
     ui->locaPlot->replot();
@@ -815,9 +849,16 @@ void MainWindow::setFilePath()
 
     int trial = ui->trialBox->currentIndex() + 1;
 
-    experiment_output_path = experiment_root + "/" + experiment_class + "/" + experiment_utter + "/" +
+    subOutPath = experiment_root + "/" + experiment_class + "/" + experiment_utter + "/" +
             experiment_utter + "_" + QString::number(trial) + "/" + experiment_utter + "_" +
             QString::number(trial);
+
+    if (mode == VFB_SUB) {
+        QString relativeRefOutPath = QString("%1/%2/%2_1/%2_1").arg(experiment_class).arg(experiment_utter);
+        vfbManager.setRefOutPath(relativeRefOutPath);
+        vfbManager.setCurrentUtter(ui->utteranceBrowser->toPlainText());
+        vfbManager.setCurrentTrial(trial);
+    }
 }
 
 QVector<double> MainWindow::parseVector(QString myString, bool matrix)
@@ -887,3 +928,38 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+
+void MainWindow::on_vfbActivationCheckBox_toggled(bool checked)
+{
+    ui->vfbRefModeRadio->setEnabled(checked);
+    ui->vfbSubModeRadio->setEnabled(checked);
+
+    ui->vfbSubModeRadio->setChecked(checked);
+    on_vfbSubModeRadio_toggled(checked);
+
+    if(!checked) {
+        mode = NO_VFB;
+    }
+}
+
+void MainWindow::on_vfbSubModeRadio_toggled(bool checked)
+{
+    ui->refPathEdit->setEnabled(checked);
+    ui->refWidget->setVisible(checked);
+
+    ui->playRefButton->setVisible(checked);
+    ui->playRefButton->setEnabled(false);
+
+    mode = checked ? VFB_SUB : VFB_REF;
+}
+
+void MainWindow::on_playRefButton_clicked()
+{
+    setFilePath();
+
+    vfbManager.playAudio();
+
+    // Update Tongue trajectory with reference
+    clearPlots();
+//    updateRefTongueTraj();
+}

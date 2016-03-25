@@ -2,6 +2,7 @@
 <config>
 	<serialNum>3</serialNum>
 	<magnet>0</magnet>
-	<data>C:/TTS_Data/Test</data>  					<!-- Do not add "/" at the end -->
-	<experiment>NEU_Experiments</experiment>		<!-- Do not add .txt or any extension -->
+	<data>C:/TTS_Data/Test</data>  							<!-- Do not add "/" at the end -->
+	<referenceRoot>C:/TTS_Data/Test/Ref1</referenceRoot> 	<!-- Do not add "/" at the end -->
+	<experiment>NEU_Experiments</experiment>				<!-- Do not add .txt or any extension -->
 </config>
