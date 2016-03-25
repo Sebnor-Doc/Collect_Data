@@ -5,6 +5,7 @@
 #include <QProcess>
 #include <QVector>
 #include <typedef.h>
+#include <QAudioDecoder>
 
 class VfbManager : public QObject
 {
@@ -27,6 +28,8 @@ public:
     void startVFBProgram();
     void playAudio();
     QVector<LocaData> getRefLocaData();
+    void getAudioSample();
+
 
 private:
     QString vfbFilePath;
@@ -42,8 +45,17 @@ private:
 
     QProcess *scoreGenProg;
 
+    QAudioDecoder *audioFile;
+    double audioStartTime;
+    const short ADR = 100;
+
 public slots:
     void setSubOutPath(QString path);
+    void readAudioBuffer();
+
+signals:
+    void audioSample(AudioSample sample, bool ref);
+
 };
 
 #endif // VFBMANAGER_H

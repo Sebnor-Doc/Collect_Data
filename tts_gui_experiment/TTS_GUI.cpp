@@ -594,7 +594,7 @@ void MainWindow::setAudio(){
     voice.moveToThread(audioThread);
 
     connect(audioThread, SIGNAL(started()), &voice, SLOT(init()));
-    connect(&voice, SIGNAL(audioSample(AudioSample)), this, SLOT(updateWaveform(AudioSample)));
+    connect(&voice, SIGNAL(audioSample(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
 
     // Manage saving status during data collection
     connect(this, SIGNAL(save(bool)), &voice, SLOT(save(bool)));
@@ -622,23 +622,28 @@ void MainWindow::setWaveform(){
     axis->axis(QCPAxis::atBottom)->setLabel("Time (s)");
     axis->axis(QCPAxis::atLeft)->setLabelColor(QColor(Qt::blue));
     axis->axis(QCPAxis::atLeft)->setLabel("Normalized Amplitude");
-
     axis->axis(QCPAxis::atLeft)->setRange(waveform.valuesRange);
     axis->axis(QCPAxis::atBottom)->setRange(waveform.keysRange);
 
-    waveform.graph = ui->waveformQCP->addGraph(axis->axis(QCPAxis::atBottom), axis->axis(QCPAxis::atLeft));
+    waveform.graph      = ui->waveformQCP->addGraph(axis->axis(QCPAxis::atBottom), axis->axis(QCPAxis::atLeft));
+    waveform.refGraph   = ui->waveformQCP->addGraph(axis->axis(QCPAxis::atBottom), axis->axis(QCPAxis::atLeft));
+
+    waveform.refGraph->setPen(QPen(Qt::red));
+    waveform.refGraph->setPen(QPen(Qt::darkGreen));
+
     ui->waveformQCP->plotLayout()->addElement(0,0, axis);
 }
 
-void MainWindow::updateWaveform(AudioSample sample) {
+void MainWindow::updateWaveform(AudioSample sample, bool ref) {
 
     QVector<double> time = sample.keys().toVector();
     QVector<double> data = sample.values().toVector();
 
-    // Add  new datapoints to waveform
-    waveform.graph->addData(time, data);
 
-    waveform.graph->rescaleKeyAxis(true);
+    QCPGraph *graph = ref ? waveform.refGraph :  waveform.graph;
+    graph->addData(time, data);
+    graph->rescaleKeyAxis(true);
+
     ui->waveformQCP->replot();
 }
 
@@ -838,8 +843,14 @@ void MainWindow::clearPlots() {
     }
 
     // Clear Waveform
-    waveform.graph->clearData();
-    waveform.graph->keyAxis()->setRange(waveform.keysRange);
+    QVector<QCPGraph*> waveGraphs;
+    waveGraphs.append(waveform.graph);
+    waveGraphs.append(waveform.refGraph);
+
+    foreach (QCPGraph* graph, waveGraphs) {
+        graph->clearData();
+        graph->keyAxis()->setRange(waveform.keysRange);
+    }
 }
 
 /* Manage Drop-down lists */
@@ -1010,4 +1021,10 @@ void MainWindow::on_playRefButton_clicked()
     // Update Tongue trajectory with reference
     clearPlots();
     updateRefTongueTraj();
+
+    // Update audio waveform
+    vfbManager.getAudioSample();
+    connect(&vfbManager, SIGNAL(audioSample(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
+
+
 }

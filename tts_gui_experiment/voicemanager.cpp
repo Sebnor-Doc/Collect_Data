@@ -80,7 +80,7 @@ void VoiceManager::processBuffer(QAudioBuffer audioBuffer)
     startTime += audioBuffer.duration() / 1000000.0 ; // convert from microseconds to seconds
 
 
-    emit audioSample(sample);
+    emit audioSample(sample, false);
 }
 
 void VoiceManager::setFilename(QString filename)

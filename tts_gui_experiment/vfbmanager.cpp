@@ -5,6 +5,10 @@
 #include <QSound>
 #include <QtXml>
 
+// Audio
+#include <QAudioFormat>
+#include <QAudioBuffer>
+
 
 VfbManager::VfbManager(QObject *parent) : QObject(parent)
 {
@@ -179,6 +183,59 @@ QVector<LocaData> VfbManager::getRefLocaData()
     input.close();
 
     return refLocaData;
+}
+
+void VfbManager::getAudioSample()
+{
+    QString refAudioFile = refOutPath + "_audio1.wav";
+    audioFile = new QAudioDecoder(this);
+
+    audioFile->setSourceFilename(refAudioFile);
+
+    connect(audioFile, SIGNAL(bufferReady()), this, SLOT(readAudioBuffer()));
+    connect(audioFile, SIGNAL(finished()), audioFile, SLOT(stop()));
+
+    audioStartTime = 0.0;
+    audioFile->start();
+}
+
+void VfbManager::readAudioBuffer()
+{
+    QAudioBuffer audioBuffer = audioFile->read();
+
+    // PeakValue is used to normalize audio samples to [-1,1]
+    qreal peakValue;
+
+    // peak value changes according to sample size
+    if (audioBuffer.format().sampleSize() == 32)
+      peakValue=INT_MAX;
+    else if (audioBuffer.format().sampleSize() == 16)
+      peakValue=SHRT_MAX;
+    else
+      peakValue=CHAR_MAX;
+
+    // Get an array that points to buffer data
+    // qint16 is chosen as per buffer.format.sampleType returns signed int of 16 bits
+    const qint16 *data = audioBuffer.constData<qint16>();
+
+    // Using vector to avoid adding each sample to waveform
+    // It is more efficient to update waveform at once with all data
+    AudioSample sample;
+
+    // Downsample by ADR value, o.w consuming too much resources
+    double period = (1.0/audioBuffer.format().sampleRate());
+
+    for(int i=0; i< audioBuffer.frameCount(); i += ADR){
+
+        double dataNorm = data[i] / peakValue;
+        double time = audioStartTime + (i * period);
+        sample.insert(time, dataNorm);
+    }
+
+    // Update starting point for next sample
+    audioStartTime += audioBuffer.duration() / 1000000.0 ; // convert from microseconds to seconds
+
+    emit audioSample(sample, true);
 }
 
 void VfbManager::setSubOutPath(QString path)

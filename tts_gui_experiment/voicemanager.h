@@ -35,7 +35,7 @@ private slots:
     void processBuffer(QAudioBuffer audioBuffer);
 
 signals:
-    void audioSample(AudioSample sample);
+    void audioSample(AudioSample sample, bool ref);
 
 };
 

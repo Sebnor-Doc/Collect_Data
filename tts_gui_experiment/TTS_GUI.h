@@ -127,7 +127,7 @@ private slots:
 
     void updateTongueTraj(LocaData locaData);
     void updateRefTongueTraj();
-    void updateWaveform(AudioSample sample);
+    void updateWaveform(AudioSample sample, bool ref = false);
     void videoManager();
 
 private:
