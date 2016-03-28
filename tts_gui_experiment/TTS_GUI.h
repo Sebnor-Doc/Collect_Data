@@ -132,7 +132,8 @@ private slots:
     void updateTongueTraj(LocaData locaData);
     void updateRefTongueTraj();
     void updateWaveform(AudioSample sample, bool ref = false);
-    void updateTrackLipsFeed(const QPixmap &image, QVector<QPoint> lipsPos);
+    void updateVideoFeedImage(const QPixmap &image);
+    void updateTrackLipsFeed(QVector<QPoint> lipsPos);
     void videoManager();
 
 private:
@@ -141,7 +142,7 @@ private:
     void setupExperiment();
     void loadExperimentFile(QString experimentFile);
     void setVideo();
-    void setLipsCurve();
+    void setVideoPlayer();
     void setAudio();
     void setTongueTraj();
     void clearPlots();

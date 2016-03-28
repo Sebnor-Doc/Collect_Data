@@ -437,7 +437,7 @@ void MainWindow::beginTrial(){
     ui->videoPlaybackRadio->setEnabled(false);
 
     // Send signal to start saving
-    emit videoMode(LIVE_FEED);
+    emit videoMode(RAW_FEED);
     emit save(true);
 
 
@@ -533,17 +533,20 @@ void MainWindow::setVideo() {
     connect(videoThread, SIGNAL(finished()), videoThread, SLOT(deleteLater()));
 
     // Update video feed with image provided by video thread
-    connect(&video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)));
-    connect(&video, SIGNAL(lipExtracted(QPixmap,QVector<QPoint>)), this, SLOT(updateTrackLipsFeed(QPixmap,QVector<QPoint>)));
+    connect(&video, SIGNAL(processedImage(QPixmap)),     this, SLOT(updateVideoFeedImage(QPixmap)));
+    connect(&video, SIGNAL(lipPosition(QVector<QPoint>)),this, SLOT(updateTrackLipsFeed(QVector<QPoint>)));
 
     // Manage saving status during data collection
     connect(this, SIGNAL(save(bool)), &video, SLOT(saveVideo(bool)));
     connect(this, SIGNAL(subOutPathSig(QString)), &video, SLOT(setSubFilename(QString)));
 
     // Select a radio button calls videoManager to set the display mode
-    connect(ui->videoShowRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
+    connect(ui->videoShowRadio,     SIGNAL(toggled(bool)), this, SLOT(videoManager()));
+    connect(ui->videoShowLipsRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
+    connect(ui->videoBWRadio,       SIGNAL(toggled(bool)), this, SLOT(videoManager()));
     connect(ui->videoPlaybackRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
-    connect(ui->videoHideRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
+    connect(ui->videoHideRadio,     SIGNAL(toggled(bool)), this, SLOT(videoManager()));
+
     connect(this, SIGNAL(videoMode(VideoMode)), &video, SLOT(displayVideo(VideoMode)));
 
     // Manage playback
@@ -554,7 +557,7 @@ void MainWindow::setVideo() {
     ui->videoSlider->setEnabled(false);
 
     // Set Lips curve
-    setLipsCurve();
+    setVideoPlayer();
 
     // Set videoMode to view camera feed
     videoManager();
@@ -563,22 +566,31 @@ void MainWindow::setVideo() {
     videoThread->start();
 }
 
-void MainWindow::setLipsCurve() {
+void MainWindow::setVideoPlayer() {
     /* Set the QCP curve where lips boundaries are identified */
 
-    QCPAxisRect *pixelAxis = ui->lipsTrackFeed->axisRect();
+    QCPAxisRect *pixelAxis = ui->videoFeed->axisRect();
     lipsCurve = new QCPCurve(pixelAxis->axis(QCPAxis::atBottom), pixelAxis->axis(QCPAxis::atLeft));
-    ui->lipsTrackFeed->addPlottable(lipsCurve);
+    ui->videoFeed->addPlottable(lipsCurve);
 
     pixelAxis->axis(QCPAxis::atBottom)->setRange(0, 319);
     pixelAxis->axis(QCPAxis::atLeft)->setRange(0, 239);
     pixelAxis->axis(QCPAxis::atLeft)->setRangeReversed(true);
+    pixelAxis->setAutoMargins(false);
+    pixelAxis->setMargins(QMargins(1, 1, 1, 1));
+
+    foreach (QCPAxis *axis, pixelAxis->axes()) {
+        axis->grid()->setVisible(false);
+        axis->setTicks(false);
+        axis->setTickLabels(false);
+    }
+
+    pixelAxis->setBackgroundScaled(true);
+    pixelAxis->setBackgroundScaledMode(Qt::IgnoreAspectRatio);
 
     lipsCurve->setPen(QPen(Qt::green));
     lipsCurve->setLineStyle(QCPCurve::lsLine);
     lipsCurve->setScatterStyle(QCPScatterStyle::ssCircle);
-
-    video.setPlotSize(ui->lipsTrackFeed->height(), ui->lipsTrackFeed->width());
 }
 
 void MainWindow::videoManager() {
@@ -588,11 +600,18 @@ void MainWindow::videoManager() {
     ui->videoSlider->setEnabled(false);
 
     // Set video display mode
-    // 0 = Live feed ; 1 = Playback ; Other = No feed
     VideoMode mode;
 
     if (ui->videoShowRadio->isChecked()) {
-        mode = LIVE_FEED;
+        mode = RAW_FEED;
+    }
+
+    else if (ui->videoShowLipsRadio->isChecked()) {
+        mode = LIP_CONTOUR;
+    }
+
+    else if (ui->videoBWRadio->isChecked()) {
+        mode = BW_FEED;
     }
 
     else if (ui->videoPlaybackRadio->isChecked()) {
@@ -608,7 +627,18 @@ void MainWindow::videoManager() {
     emit videoMode(mode);
 }
 
-void MainWindow::updateTrackLipsFeed(const QPixmap &image, QVector<QPoint> lipsPos)
+void MainWindow::updateVideoFeedImage(const QPixmap &image)
+{
+    lipsCurve->clearData();
+
+    ui->videoFeed->axisRect()->axis(QCPAxis::atLeft)->setRangeUpper(image.height()-1);
+    ui->videoFeed->axisRect()->axis(QCPAxis::atBottom)->setRangeUpper(image.width()-1);
+
+    ui->videoFeed->axisRect()->setBackground(image);
+    ui->videoFeed->replot();
+}
+
+void MainWindow::updateTrackLipsFeed(QVector<QPoint> lipsPos)
 {
     lipsCurve->clearData();
 
@@ -616,8 +646,7 @@ void MainWindow::updateTrackLipsFeed(const QPixmap &image, QVector<QPoint> lipsP
         lipsCurve->addData(point.x(), point.y());
     }
 
-    ui->lipsTrackFeed->axisRect()->setBackground(image);
-    ui->lipsTrackFeed->replot();
+    ui->videoFeed->replot();
 }
 
 /* Audio */
@@ -683,6 +712,8 @@ void MainWindow::updateWaveform(AudioSample sample, bool ref) {
 
     ui->waveformQCP->replot();
 }
+
+
 
 /* Tongue Trajectory */
 void MainWindow::setTongueTraj()

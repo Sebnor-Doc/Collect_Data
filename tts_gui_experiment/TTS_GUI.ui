@@ -459,7 +459,7 @@ p, li { white-space: pre-wrap; }
      </layout>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="biofeedbackLayout" stretch="8,5,5,1">
+     <layout class="QHBoxLayout" name="biofeedbackLayout" stretch="8,5,1">
       <item>
        <widget class="QCustomPlot" name="locaPlot" native="true">
         <property name="autoFillBackground">
@@ -468,39 +468,14 @@ p, li { white-space: pre-wrap; }
        </widget>
       </item>
       <item>
-       <widget class="QCustomPlot" name="lipsTrackFeed" native="true">
-        <property name="autoFillBackground">
-         <bool>false</bool>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">Background-color: #000;</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QVBoxLayout" name="videoLay" stretch="4,1">
+       <layout class="QVBoxLayout" name="videoLay" stretch="0,1">
         <item>
-         <widget class="QLabel" name="videoFeed">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
+         <widget class="QCustomPlot" name="videoFeed" native="true">
           <property name="autoFillBackground">
            <bool>false</bool>
           </property>
           <property name="styleSheet">
            <string notr="true">Background-color: #000;</string>
-          </property>
-          <property name="frameShape">
-           <enum>QFrame::Box</enum>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignCenter</set>
           </property>
          </widget>
         </item>
@@ -538,10 +513,24 @@ p, li { white-space: pre-wrap; }
             </font>
            </property>
            <property name="text">
-            <string>Show Video</string>
+            <string>Live Feed</string>
            </property>
            <property name="checked">
             <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="videoShowLipsRadio">
+           <property name="text">
+            <string>Lips Contour</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="videoBWRadio">
+           <property name="text">
+            <string>Contrast</string>
            </property>
           </widget>
          </item>

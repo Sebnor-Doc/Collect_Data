@@ -28,7 +28,7 @@ struct LocaData {
     QString filename;
 };
 
-enum VideoMode { LIVE_FEED, REPLAY_SUB, REPLAY_REF, NO_FEED };
+enum VideoMode { RAW_FEED, LIP_CONTOUR, BW_FEED, REPLAY_SUB, REPLAY_REF, NO_FEED };
 const int dontcare5 = qRegisterMetaType<VideoMode>("VideoMode");
 
 

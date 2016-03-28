@@ -51,6 +51,7 @@ private:
     VideoWriter video;
     VideoReadWorker readThread;
     QString subFilePath;
+    VideoMode mode;
 
     // Frame characteristics
     int frame_width;
@@ -63,9 +64,6 @@ private:
     QString replayFilePath;
     QList<QPixmap> playbackList;
     int playbackIdx;
-
-    // Lips Tracking
-    int lipPlotHeight, lipPlotWidth;
 
     // Thread
     QMutex mutex;
@@ -86,7 +84,7 @@ private slots:
 
 signals:
     void processedImage(const QPixmap &image);
-    void lipExtracted(const QPixmap &image, QVector<QPoint> lipsPos);
+    void lipPosition(QVector<QPoint> lipsPos);
     void replayFrameRange(int lower, int upper);
     void stopped();
     void finished();
@@ -97,7 +95,6 @@ private:
     QVector<QPoint> extractPointsOnLipsEdge(Mat &binaryImg);
 
 public:
-    void setPlotSize(int height, int width);
     ~VideoThread();
 };
 

@@ -43,13 +43,16 @@ void VideoThread::saveVideo(bool saveVal)
 void VideoThread::displayVideo(VideoMode mode)
 {
     mutex.lock();
+    this->mode = mode;
 
-    if(mode == LIVE_FEED) {
+    disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
+
+    if(mode == RAW_FEED || mode == LIP_CONTOUR || mode == BW_FEED ) {
         connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
     }
 
+
     else if (mode == REPLAY_SUB || mode == REPLAY_REF) {
-        disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
 
         int upperFrameIdx = static_cast<int>(replayVideo.get(CAP_PROP_FRAME_COUNT)) - 1;
         qDebug() << "upperFrameIdx: " << upperFrameIdx;
@@ -73,8 +76,7 @@ void VideoThread::displayVideo(VideoMode mode)
     }
 
     else if (mode == NO_FEED) {
-        disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
-        emit processedImage(QPixmap(":/video/video_icon.jpg").scaled(frame_width, frame_height));
+        emit processedImage(QPixmap(":/video/video_icon.jpg"));
     }
 
     else {
@@ -90,12 +92,16 @@ void VideoThread::emitVideo(Mat *frame)
     // Convert Mat frame into a QPixmap for video feed
     Mat procFrame;
     cv::cvtColor(*frame, procFrame, CV_BGR2RGB);       // invert BGR to RGB
-    QImage videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
-    QPixmap videoPixmap = QPixmap::fromImage(videoImg);
 
-    emit processedImage(videoPixmap);
+    if (mode == RAW_FEED) {
+        QImage videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
+        QPixmap videoPixmap = QPixmap::fromImage(videoImg);
+        emit processedImage(videoPixmap);
+    }
 
-    trackLips(procFrame);
+    if (mode != RAW_FEED) {
+        trackLips(procFrame);
+    }
 }
 
 /* Track Lips */
@@ -105,15 +111,23 @@ void VideoThread::trackLips(cv::Mat &frame)
     cv::resize(frame, frame, Size(320, 240), 0, 0, INTER_AREA);
 
     // Process frame to extract a lips into a binary image
-    Mat bwFrame         = extractLipsAsBWImg(frame);
-//    emit binaryImg(bwFrame);
+    Mat bwFrame = extractLipsAsBWImg(frame);
+
+    if (mode == BW_FEED) {
+        QImage bwImg = QImage((uchar*)bwFrame.data, bwFrame.cols, bwFrame.rows, bwFrame.step, QImage::Format_Grayscale8);
+        QPixmap bwPixmap = QPixmap::fromImage(bwImg);
+        emit processedImage(bwPixmap);
+        return;
+    }
+
+    // Emit raw frame as a background for lips curve
+    QImage frameImg = QImage((uchar*)frame.data, frame.cols, frame.rows, frame.step, QImage::Format_RGB888);
+    QPixmap framePixmap = QPixmap::fromImage(frameImg);
+    emit processedImage(framePixmap);
 
     // Process binary image to localize points on the lip boundaries
     QVector<QPoint> lipsPoints  = extractPointsOnLipsEdge(bwFrame);
-
-    QImage videoImg = QImage((uchar*)frame.data, frame.cols, frame.rows, frame.step, QImage::Format_RGB888);
-    QPixmap videoPixmap = QPixmap::fromImage(videoImg).scaled(lipPlotWidth, lipPlotHeight);
-    emit lipExtracted(videoPixmap, lipsPoints);
+    emit lipPosition(lipsPoints);
 }
 
 Mat VideoThread::extractLipsAsBWImg(Mat &frame)
@@ -233,14 +247,6 @@ QVector<QPoint> VideoThread::extractPointsOnLipsEdge(Mat &binaryImg)
     }
 
     return lipsPoints;
-}
-
-void VideoThread::setPlotSize(int height, int width)
-{
-    mutex.lock();
-    lipPlotHeight = height;
-    lipPlotWidth = width;
-    mutex.unlock();
 }
 
 void VideoThread::saveFrame(Mat *frame){
