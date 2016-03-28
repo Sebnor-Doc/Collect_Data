@@ -5,7 +5,7 @@
 #-------------------------------------------------
 
 TARGET      = MSCS
-VERSION     = 2.0
+VERSION     = 2.5
 TEMPLATE    = app
 
 
