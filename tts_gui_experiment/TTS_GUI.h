@@ -42,8 +42,7 @@ private:
     Ui::MainWindow *ui;
     Magnet magnet;
     QVector<Sensor*> sensors;
-    ReadSensors rs;
-    VideoThread video;
+    ReadSensors rs;   
     Localization loca;
 
     // Mode selection
@@ -100,6 +99,10 @@ private:
 
     LocaTimePlot locaTimePlots[3];
 
+    // Display video
+    VideoThread video;
+    QCPCurve *lipsCurve;
+
 
 
 /* **************************************************** *
@@ -129,6 +132,7 @@ private slots:
     void updateTongueTraj(LocaData locaData);
     void updateRefTongueTraj();
     void updateWaveform(AudioSample sample, bool ref = false);
+    void updateTrackLipsFeed(const QPixmap &image, QVector<QPoint> lipsPos);
     void videoManager();
 
 private:
@@ -137,6 +141,7 @@ private:
     void setupExperiment();
     void loadExperimentFile(QString experimentFile);
     void setVideo();
+    void setLipsCurve();
     void setAudio();
     void setTongueTraj();
     void clearPlots();

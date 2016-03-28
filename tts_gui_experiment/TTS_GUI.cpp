@@ -534,6 +534,7 @@ void MainWindow::setVideo() {
 
     // Update video feed with image provided by video thread
     connect(&video, SIGNAL(processedImage(QPixmap)), ui->videoFeed, SLOT(setPixmap(QPixmap)));
+    connect(&video, SIGNAL(lipExtracted(QPixmap,QVector<QPoint>)), this, SLOT(updateTrackLipsFeed(QPixmap,QVector<QPoint>)));
 
     // Manage saving status during data collection
     connect(this, SIGNAL(save(bool)), &video, SLOT(saveVideo(bool)));
@@ -552,11 +553,32 @@ void MainWindow::setVideo() {
     ui->videoPlaybackRadio->setEnabled(false);
     ui->videoSlider->setEnabled(false);
 
+    // Set Lips curve
+    setLipsCurve();
+
     // Set videoMode to view camera feed
     videoManager();
 
     // Start video data acquisition
     videoThread->start();
+}
+
+void MainWindow::setLipsCurve() {
+    /* Set the QCP curve where lips boundaries are identified */
+
+    QCPAxisRect *pixelAxis = ui->lipsTrackFeed->axisRect();
+    lipsCurve = new QCPCurve(pixelAxis->axis(QCPAxis::atBottom), pixelAxis->axis(QCPAxis::atLeft));
+    ui->lipsTrackFeed->addPlottable(lipsCurve);
+
+    pixelAxis->axis(QCPAxis::atBottom)->setRange(0, 319);
+    pixelAxis->axis(QCPAxis::atLeft)->setRange(0, 239);
+    pixelAxis->axis(QCPAxis::atLeft)->setRangeReversed(true);
+
+    lipsCurve->setPen(QPen(Qt::green));
+    lipsCurve->setLineStyle(QCPCurve::lsLine);
+    lipsCurve->setScatterStyle(QCPScatterStyle::ssCircle);
+
+    video.setPlotSize(ui->lipsTrackFeed->height(), ui->lipsTrackFeed->width());
 }
 
 void MainWindow::videoManager() {
@@ -586,6 +608,17 @@ void MainWindow::videoManager() {
     emit videoMode(mode);
 }
 
+void MainWindow::updateTrackLipsFeed(const QPixmap &image, QVector<QPoint> lipsPos)
+{
+    lipsCurve->clearData();
+
+    foreach (QPoint point, lipsPos) {
+        lipsCurve->addData(point.x(), point.y());
+    }
+
+    ui->lipsTrackFeed->axisRect()->setBackground(image);
+    ui->lipsTrackFeed->replot();
+}
 
 /* Audio */
 void MainWindow::setAudio(){
@@ -650,7 +683,6 @@ void MainWindow::updateWaveform(AudioSample sample, bool ref) {
 
     ui->waveformQCP->replot();
 }
-
 
 /* Tongue Trajectory */
 void MainWindow::setTongueTraj()

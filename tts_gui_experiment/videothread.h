@@ -64,6 +64,9 @@ private:
     QList<QPixmap> playbackList;
     int playbackIdx;
 
+    // Lips Tracking
+    int lipPlotHeight, lipPlotWidth;
+
     // Thread
     QMutex mutex;
 
@@ -83,11 +86,18 @@ private slots:
 
 signals:
     void processedImage(const QPixmap &image);
+    void lipExtracted(const QPixmap &image, QVector<QPoint> lipsPos);
     void replayFrameRange(int lower, int upper);
     void stopped();
     void finished();
 
+private:
+    void trackLips(Mat &frame);
+    Mat extractLipsAsBWImg(Mat &frame);
+    QVector<QPoint> extractPointsOnLipsEdge(Mat &binaryImg);
+
 public:
+    void setPlotSize(int height, int width);
     ~VideoThread();
 };
 

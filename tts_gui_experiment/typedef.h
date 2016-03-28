@@ -31,5 +31,9 @@ struct LocaData {
 enum VideoMode { LIVE_FEED, REPLAY_SUB, REPLAY_REF, NO_FEED };
 const int dontcare5 = qRegisterMetaType<VideoMode>("VideoMode");
 
+
+// Video data
+const int dontcare6 = qRegisterMetaType< QVector<QPoint> >("QVector<QPoint>");
+
 #endif // TYPEDEF
 
