@@ -74,6 +74,7 @@ private:
     QString experiment_class;
     QString experiment_utter;
     QString subOutPath;
+    QString subOutPathReplay;
     QString emfFile;
 
     // Display sensor UI

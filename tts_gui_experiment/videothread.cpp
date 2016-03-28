@@ -50,10 +50,7 @@ void VideoThread::displayVideo(VideoMode mode)
     else if (mode == REPLAY_SUB || mode == REPLAY_REF) {
         disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
 
-        bool success = replayVideo.open(currentFilePath.toStdString());      // Release is auto called by open()
         int upperFrameIdx = static_cast<int>(replayVideo.get(CAP_PROP_FRAME_COUNT)) - 1;
-        qDebug() << "Ref Video Path: " << currentFilePath;
-        qDebug() << "Success opening Video: " << success;
         qDebug() << "upperFrameIdx: " << upperFrameIdx;
 
         if (mode == REPLAY_SUB) {
@@ -120,10 +117,17 @@ void VideoThread::updatePlaybackIdx(int idx) {
     }
 }
 
-void VideoThread::setFilename(QString filename)
+void VideoThread::setSubFilename(QString filename)
 {
-    currentFilePath = filename + "_video.avi";
-    video.open(currentFilePath.toStdString(), fourCC, frame_rate, Size(frame_width,frame_height), true);
+    subFilePath = filename + "_video.avi";
+    video.open(subFilePath.toStdString(), fourCC, frame_rate, Size(frame_width,frame_height), true);
+}
+
+void VideoThread::setReplay(QString rootPath)
+{
+
+    replayFilePath = rootPath + "_video.avi";
+    replayVideo.open(replayFilePath.toStdString());
 }
 
 void VideoThread::stop()
@@ -173,7 +177,7 @@ void VideoReadWorker::run(){
     // Send info needed for saving video data into a file
     int frame_width  = static_cast<int>(camera.get(CV_CAP_PROP_FRAME_WIDTH));
     int frame_height = static_cast<int>(camera.get(CV_CAP_PROP_FRAME_HEIGHT));
-    int fourCC = CV_FOURCC('M','J','P','G');
+    int fourCC = CV_FOURCC('D','I','V','3');
     int fps = 30;
 
     camera.set(CV_CAP_PROP_FPS, fps);   // Set frame per second to camera

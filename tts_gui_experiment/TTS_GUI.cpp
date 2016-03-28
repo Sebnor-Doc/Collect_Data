@@ -420,6 +420,7 @@ void MainWindow::beginTrial(){
     // Update output file paths
     setFilePath();
     emit subOutPathSig(subOutPath);
+    subOutPathReplay = subOutPath;
 
     //Color the boxes
     QString formatUtterance = QString("<font size=\"34\" color=\"red\">%1</font>")
@@ -436,7 +437,9 @@ void MainWindow::beginTrial(){
     ui->videoPlaybackRadio->setEnabled(false);
 
     // Send signal to start saving
+    emit videoMode(LIVE_FEED);
     emit save(true);
+
 
     // Reset plots
     clearPlots();
@@ -534,7 +537,7 @@ void MainWindow::setVideo() {
 
     // Manage saving status during data collection
     connect(this, SIGNAL(save(bool)), &video, SLOT(saveVideo(bool)));
-    connect(this, SIGNAL(subOutPathSig(QString)), &video, SLOT(setFilename(QString)));
+    connect(this, SIGNAL(subOutPathSig(QString)), &video, SLOT(setSubFilename(QString)));
 
     // Select a radio button calls videoManager to set the display mode
     connect(ui->videoShowRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
@@ -572,6 +575,7 @@ void MainWindow::videoManager() {
 
     else if (ui->videoPlaybackRadio->isChecked()) {
         ui->videoSlider->setEnabled(true);
+        video.setReplay(subOutPathReplay);
         mode = REPLAY_SUB;
     }
 
@@ -962,7 +966,7 @@ QString MainWindow::parseUtter(QString rawUtter) {
     QStringList specialChar;
     specialChar << "?" << ":" << "/" << "\\" << "*" << "<" << ">" << "|";
 
-    for (QString charac : specialChar) {
+    foreach (QString charac, specialChar) {
         parsedUtter.remove(charac);
     }
 
@@ -1015,7 +1019,6 @@ void MainWindow::on_vfbSubModeRadio_toggled(bool checked)
 void MainWindow::on_playRefButton_clicked()
 {
     setFilePath();
-//    emit subOutPathSig(vfbManager.getRefOutPath());
 
     vfbManager.playAudio();
 
@@ -1028,6 +1031,6 @@ void MainWindow::on_playRefButton_clicked()
     connect(&vfbManager, SIGNAL(audioSample(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
 
     // Update video feed
-    video.setFilename(vfbManager.getRefOutPath());
+    video.setReplay(vfbManager.getRefOutPath());
     emit videoMode(REPLAY_REF);
 }

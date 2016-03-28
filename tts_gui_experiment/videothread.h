@@ -50,7 +50,7 @@ private:
     // General
     VideoWriter video;
     VideoReadWorker readThread;
-    QString currentFilePath;
+    QString subFilePath;
 
     // Frame characteristics
     int frame_width;
@@ -60,6 +60,7 @@ private:
 
     // Replay
     VideoCapture replayVideo;
+    QString replayFilePath;
     QList<QPixmap> playbackList;
     int playbackIdx;
 
@@ -69,7 +70,8 @@ private:
 public slots:
     void process();
     void setCameraInfo(int frame_width, int frame_height, int fourCC, int fps);
-    void setFilename(QString filename);
+    void setSubFilename(QString filename);
+    void setReplay(QString rootPath);
     void saveVideo(bool saveVal);
     void displayVideo(VideoMode mode);
     void updatePlaybackIdx(int);
