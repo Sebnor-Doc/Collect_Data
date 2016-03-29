@@ -437,7 +437,6 @@ void MainWindow::beginTrial(){
     ui->videoPlaybackRadio->setEnabled(false);
 
     // Send signal to start saving
-    emit videoMode(RAW_FEED);
     emit save(true);
 
 

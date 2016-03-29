@@ -55,7 +55,6 @@ void VideoThread::displayVideo(VideoMode mode)
     else if (mode == REPLAY_SUB || mode == REPLAY_REF) {
 
         int upperFrameIdx = static_cast<int>(replayVideo.get(CAP_PROP_FRAME_COUNT)) - 1;
-        qDebug() << "upperFrameIdx: " << upperFrameIdx;
 
         if (mode == REPLAY_SUB) {
             emit replayFrameRange(0, upperFrameIdx);
