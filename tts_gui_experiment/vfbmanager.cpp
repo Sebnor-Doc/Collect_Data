@@ -3,6 +3,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QSound>
+#include <QCoreApplication>
 
 /* Matlab Headers */
 #include "LocalizationScore.h"
@@ -33,67 +34,35 @@ void VfbManager::startVFBProgram()
                 .arg(mclInitApp).arg(locaInitSuccess).arg(audioInitSuccess).arg(magInitSuccess).arg(videoInitSuccess);
 }
 
-
 void VfbManager::setRefRootPath(QString rootPath)
 {
     refRootPath = rootPath;
 }
 
-void VfbManager::setRefOutPath(QString relativePath)
+void VfbManager::setPaths(RefSubFilePaths paths)
 {
-    refOutPath = refRootPath + "/" + relativePath;
+    this->paths = paths;
 }
 
-void VfbManager::setSubId(int id)
+QString VfbManager::getRefRootPath()
 {
-    subId = id;
+    return refRootPath;
 }
 
-void VfbManager::setNumTrials(int numTrials)
+RefSubFilePaths VfbManager::getPaths()
 {
-    this->numTrials = numTrials;
-}
-
-void VfbManager::setCurrentUtter(QString utter)
-{
-    currentUtter = utter;
-}
-
-void VfbManager::setCurrentTrial(int trial)
-{
-    currentTrial = trial;
-}
-
-
-
-void VfbManager::playAudio()
-{
-    QString refAudioFile = refOutPath + "_audio1.wav";
-
-    // Verify if reference sound file exist
-    QFileInfo checkFile(refAudioFile);
-
-    if (checkFile.exists() && checkFile.isFile()) {
-        QSound::play(refAudioFile); // Play sound
-    }
-
-    else
-    {
-        QString errorMsg = "ERROR: Cannot found following audio file:\n" + refAudioFile;
-        qDebug() << errorMsg;
-    }
+    return paths;
 }
 
 QVector<LocaData> VfbManager::getRefLocaData()
 {
     QVector<LocaData> refLocaData;
 
-    QString refTraj = refOutPath + "_loca.txt";
-    QFile input(refTraj);
+    QFile input(paths.refLoca);
     QTextStream in(&input);
 
     if (!input.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qDebug() << "Cannot open reference trajectory file located at:\n" << refTraj << endl;
+        qDebug() << "Cannot open reference trajectory file located at:\n" << paths.refLoca << endl;
         return refLocaData;
     }
 
@@ -114,27 +83,38 @@ QVector<LocaData> VfbManager::getRefLocaData()
     }
 
     input.close();
-
     return refLocaData;
+}
+
+
+/* Audio Control */
+
+void VfbManager::playAudio()
+{
+    // Verify if reference sound file exist
+    QFileInfo checkFile(paths.refAudio);
+
+    if (checkFile.exists() && checkFile.isFile()) {
+        QSound::play(paths.refAudio); // Play sound
+    }
+
+    else
+    {
+        QString errorMsg = "ERROR: Cannot found following audio file:\n" + paths.refAudio;
+        qDebug() << errorMsg;
+    }
 }
 
 void VfbManager::getAudioSample()
 {
-    QString refAudioFile = refOutPath + "_audio1.wav";
     audioFile = new QAudioDecoder(this);
-
-    audioFile->setSourceFilename(refAudioFile);
+    audioFile->setSourceFilename(paths.refAudio);
 
     connect(audioFile, SIGNAL(bufferReady()), this, SLOT(readAudioBuffer()));
     connect(audioFile, SIGNAL(finished()), audioFile, SLOT(stop()));
 
     audioStartTime = 0.0;
     audioFile->start();
-}
-
-QString VfbManager::getRefOutPath()
-{
-    return refOutPath;
 }
 
 void VfbManager::readAudioBuffer()
@@ -173,13 +153,51 @@ void VfbManager::readAudioBuffer()
     // Update starting point for next sample
     audioStartTime += audioBuffer.duration() / 1000000.0 ; // convert from microseconds to seconds
 
-    emit audioSample(sample, true);
+    emit audioSampleSig(sample, true);
 }
 
-void VfbManager::setSubOutPath(QString path)
+void VfbManager::computeScores()
 {
-    subOutPath = path;
+    QString trainModelQStr      = QString(QCoreApplication::applicationDirPath() + "/trainedModel.mat");
+    QString uniformLBP8QStr     = QString(QCoreApplication::applicationDirPath() + "/UniformLBP8.txt");
+
+    // Convert QString type to Matlab mwArray type
+    mwArray refTrajFile(paths.refLoca.toLatin1().constData());
+    mwArray subTrajFile(paths.subLoca.toLatin1().constData());
+
+    mwArray refAudioFile(paths.refAudio.toLatin1().constData());
+    mwArray subAudioFile(paths.subAudio.toLatin1().constData());
+
+    mwArray refMagFile(paths.refMag.toLatin1().constData());
+    mwArray subMagFile(paths.subMag.toLatin1().constData());
+
+    mwArray refVideoFile(paths.refLips.toLatin1().constData());
+    mwArray subVideoFile(paths.subLips.toLatin1().constData());
+    mwArray videoTrainingModelFile(trainModelQStr.toLatin1().constData());
+    mwArray videoUniformLBP8File(uniformLBP8QStr.toLatin1().constData());
+
+    // Perform score generation
+    Scores scores;
+
+    mwArray locaScoreML;
+    locaScoreMain(1, locaScoreML, refTrajFile, subTrajFile, refAudioFile, subAudioFile);
+    scores.loca = locaScoreML(1,1);
+
+    mwArray audioScoreML;
+    audioScoreMain(1, audioScoreML, refAudioFile, subAudioFile);
+    scores.voice = audioScoreML(1,1);
+
+    mwArray magScoreML;
+    magneticScoreMain(1, magScoreML, refMagFile, subMagFile, refAudioFile, subAudioFile);
+    scores.mag = magScoreML(1,1);
+
+    mwArray videoScoreML;
+    videoScoreMain(1, videoScoreML, videoTrainingModelFile, videoUniformLBP8File, refVideoFile, subVideoFile);
+    scores.lips = videoScoreML(1,1);
+
+    emit scoreSig(scores);
 }
+
 
 VfbManager::~VfbManager()
 {

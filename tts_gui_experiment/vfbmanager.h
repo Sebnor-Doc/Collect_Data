@@ -2,6 +2,7 @@
 #define VFBMANAGER_H
 
 #include <QObject>
+#include <typedef.h>
 #include <QVector>
 #include <typedef.h>
 #include <QAudioDecoder>
@@ -15,45 +16,31 @@ public:
     ~VfbManager();
 
     void setRefRootPath(QString rootPath);
-    void setRefOutPath(QString relativePath);
+    void setPaths(RefSubFilePaths paths);
 
-    void setSubId(int id);
-    void setNumTrials(int numTrials);
-
-    void setCurrentUtter(QString utter);
-    void setCurrentTrial(int trial);
-
-
-    void playAudio();
+    QString getRefRootPath();
+    RefSubFilePaths getPaths();
     QVector<LocaData> getRefLocaData();
     void getAudioSample();
-
-    QString getRefOutPath();
-
+    void playAudio();
 
 private:
     QString refRootPath;
-    QString refOutPath;
-    QString subOutPath;
-
-    int currentTrial;
-    QString currentUtter;
-
-    int subId;
-    int numTrials;
-
+    RefSubFilePaths paths;
 
     QAudioDecoder *audioFile;
     double audioStartTime;
     const short ADR = 100;
 
+
 public slots:
     void startVFBProgram();
-    void setSubOutPath(QString path);
     void readAudioBuffer();
+    void computeScores();
 
 signals:
-    void audioSample(AudioSample sample, bool ref);
+    void audioSampleSig(AudioSample sample, bool ref);
+    void scoreSig(Scores scores);
 
 };
 

@@ -94,16 +94,15 @@ void MainWindow::on_configButton_clicked()
 
         connect(vfbThread, SIGNAL(started()), vfbManager, SLOT(startVFBProgram()));
         connect(vfbThread, SIGNAL(finished()), vfbManager, SLOT(deleteLater()));
+        connect(vfbManager, SIGNAL(scoreSig(Scores)), this, SLOT(updateScores(Scores)));
+        connect(this, SIGNAL(computeScoreSig()), vfbManager, SLOT(computeScores()));
 
         vfbThread->start();
 
         // Set session information
-        vfbManager->setSubId( ui->subNbEdit->text().toInt() );
-        vfbManager->setNumTrials( numTrials );
         vfbManager->setRefRootPath(ui->refPathEdit->toPlainText());
 
         ui->playRefButton->setEnabled(true);
-        connect(this, SIGNAL(subOutPathSig(QString)), vfbManager, SLOT(setSubOutPath(QString)));
     }
 
     // Set instance variables for folder/file paths
@@ -425,7 +424,7 @@ void MainWindow::beginTrial(){
     // Update output file paths
     setFilePath();
     emit subOutPathSig(subOutPath);
-    subOutPathReplay = subOutPath;
+    subOutPathReplay = subOutPath + "_video.avi";
 
     //Color the boxes
     QString formatUtterance = QString("<font size=\"34\" color=\"red\">%1</font>")
@@ -456,6 +455,7 @@ void MainWindow::beginTrial(){
 void MainWindow::stopTrial(){
 
     emit save(false);
+    emit computeScoreSig();
 
     // Update next trial
     sessionCompleted = false;
@@ -631,6 +631,7 @@ void MainWindow::videoManager() {
     emit videoMode(mode);
 }
 
+
 void MainWindow::updateVideoFeedImage(const QPixmap &image)
 {
     lipsCurve->clearData();
@@ -716,7 +717,6 @@ void MainWindow::updateWaveform(AudioSample sample, bool ref) {
 
     ui->waveformQCP->replot();
 }
-
 
 
 /* Tongue Trajectory */
@@ -924,6 +924,14 @@ void MainWindow::clearPlots() {
     }
 }
 
+/* Visual Feedback as Scores */
+void MainWindow::updateScores(Scores scores)
+{
+    qDebug() << QString("Scores: loca = %1, mag = %2, audio = %3, lips = %4")
+                .arg(scores.loca).arg(scores.mag).arg(scores.voice).arg(scores.lips);
+}
+
+
 /* Manage Drop-down lists */
 void MainWindow::on_trialBox_currentIndexChanged(int index)
 {
@@ -985,10 +993,20 @@ void MainWindow::setFilePath()
             QString::number(trial);
 
     if (mode == VFB_SUB) {
-        QString relativeRefOutPath = QString("%1/%2/%2_1/%2_1").arg(experiment_class).arg(experiment_utter);
-        vfbManager->setRefOutPath(relativeRefOutPath);
-        vfbManager->setCurrentUtter(ui->utteranceBrowser->toPlainText());
-        vfbManager->setCurrentTrial(trial);
+
+        RefSubFilePaths paths;
+        QString refOutPath = QString("%1/%2/%3/%3_1/%3_1").arg(vfbManager->getRefRootPath()).arg(experiment_class).arg(experiment_utter);
+        paths.refLoca   = refOutPath + "_loca.txt";
+        paths.refMag    = refOutPath + "_raw_sensor.txt";
+        paths.refAudio  = refOutPath + "_audio1.wav";
+        paths.refLips   = refOutPath + "_video.avi";
+
+        paths.subLoca   = subOutPath + "_loca.txt";
+        paths.subMag    = subOutPath + "_raw_sensor.txt";
+        paths.subAudio  = subOutPath + "_audio1.wav";
+        paths.subLips   = subOutPath + "_video.avi";
+
+        vfbManager->setPaths(paths);
     }
 }
 
@@ -1107,6 +1125,6 @@ void MainWindow::on_playRefButton_clicked()
     connect(vfbManager, SIGNAL(audioSample(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
 
     // Update video feed
-    video.setReplay(vfbManager->getRefOutPath());
+    video.setReplay(vfbManager->getPaths().refLips);
     emit videoMode(REPLAY_REF);
 }

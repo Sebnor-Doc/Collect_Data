@@ -72,7 +72,7 @@ public slots:
     void process();
     void setCameraInfo(int frame_width, int frame_height, int fourCC, int fps);
     void setSubFilename(QString filename);
-    void setReplay(QString rootPath);
+    void setReplay(QString videoPath);
     void saveVideo(bool saveVal);
     void displayVideo(VideoMode mode);
     void updatePlaybackIdx(int);

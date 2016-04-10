@@ -276,11 +276,9 @@ void VideoThread::setSubFilename(QString filename)
     video.open(subFilePath.toStdString(), fourCC, frame_rate, Size(frame_width,frame_height), true);
 }
 
-void VideoThread::setReplay(QString rootPath)
+void VideoThread::setReplay(QString videoPath)
 {
-
-    replayFilePath = rootPath + "_video.avi";
-    replayVideo.open(replayFilePath.toStdString());
+    replayVideo.open(videoPath.toStdString());
 }
 
 void VideoThread::stop()

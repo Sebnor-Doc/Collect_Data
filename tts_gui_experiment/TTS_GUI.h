@@ -138,6 +138,7 @@ private slots:
     void updateVideoFeedImage(const QPixmap &image);
     void updateTrackLipsFeed(QVector<QPoint> lipsPos);
     void videoManager();
+    void updateScores(Scores scores);
 
 private:
     void loadConfig();
@@ -164,6 +165,7 @@ signals:
     void subOutPathSig(QString);
     void stopRecording();
     void videoMode(VideoMode);
+    void computeScoreSig();
 };
 
 #endif // TTS_GUI_H

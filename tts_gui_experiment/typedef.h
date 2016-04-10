@@ -5,6 +5,25 @@
 #include <QVector>
 #include <QMap>
 
+// FilePaths
+struct RefSubFilePaths {
+    QString refLoca;
+    QString refMag;
+    QString refAudio;
+    QString refLips;
+    QString subLoca;
+    QString subMag;
+    QString subAudio;
+    QString subLips;
+};
+
+struct Scores {
+    double loca     = 0.0;
+    double mag      = 0.0;
+    double voice    = 0.0;
+    double lips     = 0.0;
+};
+const int dontcare7 = qRegisterMetaType<Scores>("Scores");
 
 // Magnetic data
 struct MagData{
