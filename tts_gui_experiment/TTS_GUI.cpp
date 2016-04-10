@@ -952,6 +952,7 @@ void MainWindow::on_classBox_currentIndexChanged(int index)
 void MainWindow::on_utteranceBox_currentIndexChanged(int index)
 {
     ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(ui->classBox->currentIndex())->at(index) + QString("</font>"));
+    ui->utteranceBrowser->setAlignment(Qt::AlignCenter);
 
     // Enable Start/Stop button if session was completed
     if (sessionCompleted) {
