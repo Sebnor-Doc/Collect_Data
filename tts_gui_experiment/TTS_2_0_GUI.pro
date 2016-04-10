@@ -46,10 +46,29 @@ LIBS += -lAdvapi32 -lgdi32 -luser32 -lshell32
 RESOURCES += \
     icons.qrc
 
+
+# Matlab Score generation libraries
+INCLUDEPATH += "C:/Program Files/MATLAB/MATLAB Runtime/v85/extern/include"
+LIBS        += "C:/Program Files/MATLAB/MATLAB Runtime/v85/extern/lib/win64/microsoft/mclmcrrt.lib"
+
+INCLUDEPATH += "C:/dev/MSCS_Score/Localization"
+LIBS        += "C:/dev/MSCS_Score/Localization/LocalizationScore.lib"
+
+INCLUDEPATH += "C:/dev/MSCS_Score/Audio"
+LIBS        += "C:/dev/MSCS_Score/Audio/AudioScore.lib"
+
+INCLUDEPATH += "C:/dev/MSCS_Score/Magnetic"
+LIBS        += "C:/dev/MSCS_Score/Magnetic/MagneticScore.lib"
+
+INCLUDEPATH += "C:/dev/MSCS_Score/Video"
+LIBS        += "C:/dev/MSCS_Score/Video/VideoScore.lib"
+
+
 # Boost Libraries
 INCLUDEPATH += "C:/dev/Boost/boost_1_60_0"
 DEPENDPATH  += "C:/dev/Boost/boost_1_60_0/stage/Lib_static_msvc12_64bit"
 LIBS        += -LC:/dev/Boost/boost_1_60_0/stage/Lib_static_msvc12_64bit
+
 
 # OPEN CV
 INCLUDEPATH += "C:/dev/OpenCV/OpenCV_3_0/opencv/build/include"

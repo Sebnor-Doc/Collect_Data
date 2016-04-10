@@ -9,7 +9,7 @@
 #include <QFile>
 #include <QAudioEncoderSettings>
 #include <QCloseEvent>
-#include <QThread>
+
 #include <QCameraInfo>
 #include <QtXml>
 
@@ -84,18 +84,30 @@ void MainWindow::on_configButton_clicked()
     ui->measureEMFButton->setEnabled(true);
     ui->configButton->setEnabled(false);
 
+    // Start Visual Feedback thread
     if (mode == VFB_SUB) {
-        // Set general parameters
-        vfbManager.setVfbFilePath(QCoreApplication::applicationDirPath() + "/vfb.xml");
-        vfbManager.setSubId( ui->subNbEdit->text().toInt() );
-        vfbManager.setNumTrials( numTrials );
 
-        vfbManager.updateXML(0);        // Set vfb.xml file general properties
-        vfbManager.startVFBProgram();   // Start VFB.exe program
+        // Start Visual Feedback thread
+        vfbThread = new QThread();
+        vfbManager = new VfbManager();
+        vfbManager->moveToThread(vfbThread);
+
+        connect(vfbThread, SIGNAL(started()), vfbManager, SLOT(startVFBProgram()));
+        connect(vfbThread, SIGNAL(finished()), vfbManager, SLOT(deleteLater()));
+
+        vfbThread->start();
+
+        // Set session information
+        vfbManager->setSubId( ui->subNbEdit->text().toInt() );
+        vfbManager->setNumTrials( numTrials );
+        vfbManager->setRefRootPath(ui->refPathEdit->toPlainText());
+
         ui->playRefButton->setEnabled(true);
-
-        connect(this, SIGNAL(subOutPathSig(QString)), &vfbManager, SLOT(setSubOutPath(QString)));
+        connect(this, SIGNAL(subOutPathSig(QString)), vfbManager, SLOT(setSubOutPath(QString)));
     }
+
+    // Set instance variables for folder/file paths
+    setFilePath();
 }
 
 void MainWindow::loadConfig() {
@@ -268,13 +280,6 @@ void MainWindow::setupExperiment()
         // Populate trial numbers
         ui->trialBox->addItem(QString::number(trial) + " / " + QString::number(numTrials));
     }
-
-    if (mode == VFB_SUB) {
-        vfbManager.setRefRootPath(ui->refPathEdit->toPlainText());
-    }
-
-    // Set instance variables for folder/file paths
-    setFilePath();
 }
 
 
@@ -444,7 +449,7 @@ void MainWindow::beginTrial(){
     clearPlots();
 
     if (mode == VFB_SUB) {
-        vfbManager.updateXML(1);        // Update Visual Feedback XML file
+        // TODO: Update filepaths
     }
 }
 
@@ -877,7 +882,7 @@ void MainWindow::updateTongueTraj(LocaData locaData){
 
 void MainWindow::updateRefTongueTraj()
 {
-    QVector<LocaData> refLocaData = vfbManager.getRefLocaData();
+    QVector<LocaData> refLocaData = vfbManager->getRefLocaData();
 
     // Add point to localization graphs
     foreach (LocaData data, refLocaData ) {
@@ -981,9 +986,9 @@ void MainWindow::setFilePath()
 
     if (mode == VFB_SUB) {
         QString relativeRefOutPath = QString("%1/%2/%2_1/%2_1").arg(experiment_class).arg(experiment_utter);
-        vfbManager.setRefOutPath(relativeRefOutPath);
-        vfbManager.setCurrentUtter(ui->utteranceBrowser->toPlainText());
-        vfbManager.setCurrentTrial(trial);
+        vfbManager->setRefOutPath(relativeRefOutPath);
+        vfbManager->setCurrentUtter(ui->utteranceBrowser->toPlainText());
+        vfbManager->setCurrentTrial(trial);
     }
 }
 
@@ -1043,6 +1048,14 @@ QString MainWindow::parseUtter(QString rawUtter) {
 /* Closing methods */
 void MainWindow::closeEvent(QCloseEvent *event){
 
+    qDebug() << "\n---- Closing Procedure Started ----\n";
+
+    if (vfbThread) {
+        qDebug() << "Closing Matlab Runtime Engine";
+        vfbThread->exit();
+        vfbThread->wait();
+    }
+
     emit stopRecording();
 
     // Closing procedures
@@ -1083,17 +1096,17 @@ void MainWindow::on_playRefButton_clicked()
 {
     setFilePath();
 
-    vfbManager.playAudio();
+    vfbManager->playAudio();
 
     // Update Tongue trajectory with reference
     clearPlots();
     updateRefTongueTraj();
 
     // Update audio waveform
-    vfbManager.getAudioSample();
-    connect(&vfbManager, SIGNAL(audioSample(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
+    vfbManager->getAudioSample();
+    connect(vfbManager, SIGNAL(audioSample(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
 
     // Update video feed
-    video.setReplay(vfbManager.getRefOutPath());
+    video.setReplay(vfbManager->getRefOutPath());
     emit videoMode(REPLAY_REF);
 }

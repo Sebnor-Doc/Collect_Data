@@ -19,6 +19,7 @@
 #include <QAudioProbe>
 #include <QaudioBuffer>
 #include <QTimer>
+#include <QThread>
 
 #include <QCamera>
 #include <QImage>
@@ -48,7 +49,9 @@ private:
     // Mode selection
     enum Mode { NO_VFB, VFB_REF, VFB_SUB };
     Mode mode;
-    VfbManager vfbManager;
+
+    QThread     *vfbThread  = 0;
+    VfbManager  *vfbManager = 0;
 
     // Audio
     VoiceManager voice;
