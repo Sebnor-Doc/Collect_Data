@@ -25,14 +25,16 @@ VfbManager::VfbManager(QObject *parent) : QObject(parent)
     connect(scoreGenThread, SIGNAL(started()), scoreGen, SLOT(startMatlabEngine()));
     connect(scoreGenThread, SIGNAL(finished()), scoreGen, SLOT(deleteLater()));
     connect(this, SIGNAL(computeScoreSig(RefSubFilePaths)), scoreGen, SLOT(computeScore(RefSubFilePaths)));
-    connect(scoreGen, SIGNAL(scoreSig(Scores)), this, SIGNAL(scoreSig(Scores)));
+    connect(scoreGen, SIGNAL(scoreSig(Scores, RefSubFilePaths)), this, SIGNAL(scoreSig(Scores)));
+    connect(scoreGen, SIGNAL(scoreSig(Scores, RefSubFilePaths)), this, SLOT(saveScores(Scores, RefSubFilePaths)));
 
     scoreGenThread->start(QThread::HighPriority);
 }
 
-void VfbManager::setRefRootPath(QString rootPath)
+void VfbManager::setRootPath(QString refRoot, QString subRoot)
 {
-    refRootPath = rootPath;
+    refRootPath = refRoot;
+    subRootPath = subRoot;
 }
 
 void VfbManager::setPaths(RefSubFilePaths paths)
@@ -157,6 +159,45 @@ void VfbManager::computeScores()
     emit computeScoreSig(paths);
 }
 
+void VfbManager::saveScores(Scores scores, RefSubFilePaths info)
+{
+    QString outFilePath = subRootPath + "/scores.csv";
+    QFileInfo checkFile(outFilePath);
+
+    if (!checkFile.exists()) {
+
+        QFile outFile(outFilePath);
+        QTextStream out(&outFile);
+
+        if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QString msg = "The following Score output file cannot be created: " + outFilePath;
+            qDebug() << msg;
+        }
+
+        out << "Class, Utter, Trial, Score Average, Localization, Magnetic, Voice, Lips" << "\n";
+        outFile.close();
+    }
+
+    QFile outFile(outFilePath);
+    QTextStream out(&outFile);
+
+    if (!outFile.open(QIODevice::Append | QIODevice::Text)) {
+        QString msg = "Scores cannot be added to the following output file: " + outFilePath;
+        qDebug() << msg;
+    }
+
+    out << info.utterClass              << ","
+        << info.utter                   << ","
+        << QString::number(info.trialNb)<< ","
+        << QString::number(scores.avg) << ","
+        << QString::number(scores.loca) << ","
+        << QString::number(scores.mag)  << ","
+        << QString::number(scores.voice)<< ","
+        << QString::number(scores.lips) << "\n";
+
+    outFile.close();
+}
+
 VfbManager::~VfbManager() {
 
     if (scoreGenThread) {
@@ -223,7 +264,9 @@ void ScoreGen::computeScore(RefSubFilePaths paths) {
     videoScoreMain(1, videoScoreML, videoTrainingModelFile, videoUniformLBP8File, refVideoFile, subVideoFile);
     scores.lips = videoScoreML(1,1);
 
-    emit scoreSig(scores);
+    scores.avg = (scores.loca + scores.voice + scores.mag + scores.lips) / 4.0;
+
+    emit scoreSig(scores, paths);
 }
 
 ScoreGen::~ScoreGen()

@@ -15,6 +15,9 @@ struct RefSubFilePaths {
     QString subMag;
     QString subAudio;
     QString subLips;
+    QString utterClass;
+    QString utter;
+    int trialNb;
 };
 const int dontcare8 = qRegisterMetaType<RefSubFilePaths>("RefSubFilePaths");
 
@@ -24,6 +27,7 @@ struct Scores {
     double mag      = 0.0;
     double voice    = 0.0;
     double lips     = 0.0;
+    double avg      = 0.0;
 };
 const int dontcare7 = qRegisterMetaType<Scores>("Scores");
 

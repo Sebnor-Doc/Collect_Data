@@ -21,7 +21,7 @@ public slots:
     void computeScore(RefSubFilePaths paths);
 
 signals:
-    void scoreSig(Scores scores);
+    void scoreSig(Scores scores, RefSubFilePaths info);
 };
 
 
@@ -33,7 +33,7 @@ public:
     VfbManager(QObject *parent = 0);
     ~VfbManager();
 
-    void setRefRootPath(QString rootPath);
+    void setRootPath(QString refRoot, QString subRoot);
     void setPaths(RefSubFilePaths paths);
 
     QString getRefRootPath();
@@ -44,6 +44,7 @@ public:
 
 private:
     QString refRootPath;
+    QString subRootPath;
     RefSubFilePaths paths;
 
     QAudioDecoder *audioFile;
@@ -56,6 +57,7 @@ private:
 public slots:
     void readAudioBuffer();
     void computeScores();
+    void saveScores(Scores scores, RefSubFilePaths info);
 
 signals:
     void audioSampleSig(AudioSample sample, bool ref);

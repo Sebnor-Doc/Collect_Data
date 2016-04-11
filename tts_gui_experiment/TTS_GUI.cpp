@@ -88,20 +88,14 @@ void MainWindow::on_configButton_clicked()
     if (mode == VFB_SUB) {
 
         // Start Visual Feedback thread
-//        vfbThread = new QThread(this);
         vfbManager = new VfbManager(this);
-//        vfbManager->moveToThread(vfbThread);
 
-//        connect(vfbThread, SIGNAL(started()), vfbManager, SLOT(startVFBProgram()));
-//        connect(vfbThread, SIGNAL(finished()), vfbManager, SLOT(deleteLater()));
         connect(vfbManager, SIGNAL(scoreSig(Scores)), this, SLOT(updateScores(Scores)));
         connect(this, SIGNAL(computeScoreSig()), vfbManager, SLOT(computeScores()));
 
-//        vfbThread->start();
-
         // Set session information
-        vfbManager->setRefRootPath(ui->refPathEdit->toPlainText());
-//        vfbManager->startVFBProgram();
+
+        vfbManager->setRootPath(ui->refPathEdit->toPlainText(), experiment_root);
 
         ui->playRefButton->setEnabled(true);
 
@@ -962,16 +956,10 @@ void MainWindow::clearPlots() {
 /* Visual Feedback as Scores */
 void MainWindow::updateScores(Scores scores)
 {
-//    qDebug() << QString("Scores: loca = %1, mag = %2, audio = %3, lips = %4")
-//                .arg(scores.loca).arg(scores.mag).arg(scores.voice).arg(scores.lips);
-
-    double avgScore = (scores.loca + scores.mag + scores.voice + scores.lips) / 4.0;
-
-    double scoreArray[5] = {scores.loca, scores.mag, scores.voice, scores.lips, avgScore};
+    double scoreArray[5] = {scores.loca, scores.mag, scores.voice, scores.lips, scores.avg};
     QRgb colors[5];
     colorGrad.colorize(scoreArray, QCPRange(0.0, 10.0), colors, 5);
 
-    qDebug() << "Current TRial : " << currentTrial;
     locaBars[currentTrial]->addData(currentTrial, scores.loca);
     locaBars[currentTrial]->setBrush(QBrush(QColor(colors[0])));
 
@@ -984,7 +972,7 @@ void MainWindow::updateScores(Scores scores)
     lipsBars[currentTrial]->addData(currentTrial, scores.lips);
     lipsBars[currentTrial]->setBrush(QBrush(QColor(colors[3])));
 
-    avgScoreBars[currentTrial]->addData(currentTrial, avgScore);
+    avgScoreBars[currentTrial]->addData(currentTrial, scores.avg);
     avgScoreBars[currentTrial]->setBrush(QBrush(QColor(colors[4])));
 
     ui->scorePlot->replot();
@@ -1177,6 +1165,10 @@ void MainWindow::setFilePath()
         paths.subMag    = subOutPath + "_raw_sensor.txt";
         paths.subAudio  = subOutPath + "_audio1.wav";
         paths.subLips   = subOutPath + "_video.avi";
+
+        paths.utterClass= experiment_class;
+        paths.utter     = experiment_utter;
+        paths.trialNb   = currentTrial;
 
         vfbManager->setPaths(paths);
     }
