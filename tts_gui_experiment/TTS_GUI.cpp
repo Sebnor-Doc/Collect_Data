@@ -470,22 +470,52 @@ void MainWindow::stopTrial(){
     int numUtter =  ((QStringList*) utter.at(classIdx))->size();
     int numClass = classUtter.size();
 
-    if ((utterIdx + 1) < numUtter) {
-        // Update to next utterance of current class
-        ui->utteranceBox->setCurrentIndex(utterIdx + 1);
+    if (mode != NO_VFB) {
+
+        if( (trialIdx + 1) < numTrials ) {
+            // Update to next trial
+            ui->trialBox->setCurrentIndex(trialIdx + 1);
+        }
+
+        else if ( (utterIdx + 1) < numUtter ) {
+            // Update to next utterance of current class
+            ui->utteranceBox->setCurrentIndex(utterIdx + 1);
+        }
+
+        else if ( (classIdx + 1) < numClass ) {
+            // Update to next class
+            ui->classBox->setCurrentIndex(classIdx + 1);
+        }
+
+        else {
+            // Session is over, all utterances haven been recorded
+            sessionCompleted = true;
+            ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(classIdx)->at(utterIdx) + QString("</font>"));
+        }
     }
-    else if ((classIdx + 1) < numClass) {
-        // Update to next class
-        ui->classBox->setCurrentIndex(classIdx + 1);
-    }
-    else if ((trialIdx + 1) < numTrials) {
-        // Update to next trial
-        ui->trialBox->setCurrentIndex(trialIdx + 1);
-    }
+
     else {
-        // Session is over, all utterances haven been recorded
-        sessionCompleted = true;
-        ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(classIdx)->at(utterIdx) + QString("</font>"));
+
+        if ((utterIdx + 1) < numUtter) {
+            // Update to next utterance of current class
+            ui->utteranceBox->setCurrentIndex(utterIdx + 1);
+        }
+
+        else if ((classIdx + 1) < numClass) {
+            // Update to next class
+            ui->classBox->setCurrentIndex(classIdx + 1);
+        }
+
+        else if ((trialIdx + 1) < numTrials) {
+            // Update to next trial
+            ui->trialBox->setCurrentIndex(trialIdx + 1);
+        }
+
+        else {
+            // Session is over, all utterances haven been recorded
+            sessionCompleted = true;
+            ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(classIdx)->at(utterIdx) + QString("</font>"));
+        }
     }
 
     // Update start/stop button status based on session completion status
@@ -1214,7 +1244,6 @@ void MainWindow::closeEvent(QCloseEvent *event){
     if (vfbManager) {
         qDebug() << "Closing Matlab Runtime Engine";
         delete vfbManager;
-//        vfbThread->wait();
     }
 
     emit stopRecording();
