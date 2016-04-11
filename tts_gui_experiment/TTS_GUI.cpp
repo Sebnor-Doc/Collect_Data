@@ -1048,6 +1048,28 @@ void MainWindow::setScorePlot() {
     ui->scorePlot->replot();
 }
 
+void MainWindow::clearScorePlot()
+{
+    QVector<QVector<QCPBars*>> scoreBars;
+    scoreBars << locaBars << magBars << voiceBars << lipsBars << avgScoreBars;
+
+    foreach (QVector<QCPBars*> bars, scoreBars) {
+
+        foreach(QCPBars* bar, bars) {
+
+            QVector<double> keys(numTrials+2);
+            QVector<double> values(keys.size(), 0.0);
+
+            for (int key = 0; key < keys.size(); key++) {
+                keys[key] = key;
+            }
+            bar->setData(keys, values);
+        }
+    }
+
+    ui->scorePlot->replot();
+}
+
 
 /* Manage Drop-down lists */
 void MainWindow::on_trialBox_currentIndexChanged(int index)
@@ -1083,6 +1105,9 @@ void MainWindow::on_utteranceBox_currentIndexChanged(int index)
 {
     ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(ui->classBox->currentIndex())->at(index) + QString("</font>"));
     ui->utteranceBrowser->setAlignment(Qt::AlignCenter);
+
+    // Clear score bar plots
+    clearScorePlot();
 
     // Enable Start/Stop button if session was completed
     if (sessionCompleted) {

@@ -161,6 +161,7 @@ private:
     void clearPlots();
     void setWaveform();
     void setScorePlot();
+    void clearScorePlot();
     void beginTrial();
     void stopTrial();
     void setFilePath();
