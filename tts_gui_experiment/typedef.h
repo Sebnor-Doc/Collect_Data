@@ -16,6 +16,8 @@ struct RefSubFilePaths {
     QString subAudio;
     QString subLips;
 };
+const int dontcare8 = qRegisterMetaType<RefSubFilePaths>("RefSubFilePaths");
+
 
 struct Scores {
     double loca     = 0.0;

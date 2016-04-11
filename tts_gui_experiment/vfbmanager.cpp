@@ -17,21 +17,17 @@
 
 
 VfbManager::VfbManager(QObject *parent) : QObject(parent)
-{}
-
-
-void VfbManager::startVFBProgram()
 {
-    mclmcrInitialize();
+    scoreGenThread = new QThread(this);
+    scoreGen = new ScoreGen();
+    scoreGen->moveToThread(scoreGenThread);
 
-    bool mclInitApp         = mclInitializeApplication(NULL, 0);
-    bool locaInitSuccess    = LocalizationScoreInitialize();
-    bool audioInitSuccess   = AudioScoreInitialize();
-    bool magInitSuccess     = MagneticScoreInitialize();
-    bool videoInitSuccess   = VideoScoreInitialize();
+    connect(scoreGenThread, SIGNAL(started()), scoreGen, SLOT(startMatlabEngine()));
+    connect(scoreGenThread, SIGNAL(finished()), scoreGen, SLOT(deleteLater()));
+    connect(this, SIGNAL(computeScoreSig(RefSubFilePaths)), scoreGen, SLOT(computeScore(RefSubFilePaths)));
+    connect(scoreGen, SIGNAL(scoreSig(Scores)), this, SIGNAL(scoreSig(Scores)));
 
-    qDebug() << QString("Matlab DLLs Init. Status: MCL = %1 , Loca = %2 , Audio = %3 , Mag = %4 , Video = %5")
-                .arg(mclInitApp).arg(locaInitSuccess).arg(audioInitSuccess).arg(magInitSuccess).arg(videoInitSuccess);
+    scoreGenThread->start(QThread::HighPriority);
 }
 
 void VfbManager::setRefRootPath(QString rootPath)
@@ -158,6 +154,38 @@ void VfbManager::readAudioBuffer()
 
 void VfbManager::computeScores()
 {
+    emit computeScoreSig(paths);
+}
+
+VfbManager::~VfbManager() {
+
+    if (scoreGenThread) {
+        scoreGenThread->exit();
+        scoreGenThread->wait();
+    }
+}
+
+/* **********************************************
+ *          ScoreGen Class
+ * ***********************************************/
+ScoreGen::ScoreGen(QObject *parent) : QObject(parent) {}
+
+void ScoreGen::startMatlabEngine()
+{
+    mclmcrInitialize();
+
+    bool mclInitApp         = mclInitializeApplication(NULL, 0);
+    bool locaInitSuccess    = LocalizationScoreInitialize();
+    bool audioInitSuccess   = AudioScoreInitialize();
+    bool magInitSuccess     = MagneticScoreInitialize();
+    bool videoInitSuccess   = VideoScoreInitialize();
+
+    qDebug() << QString("Matlab DLLs Init. Status: MCL = %1 , Loca = %2 , Audio = %3 , Mag = %4 , Video = %5")
+                .arg(mclInitApp).arg(locaInitSuccess).arg(audioInitSuccess).arg(magInitSuccess).arg(videoInitSuccess);
+}
+
+void ScoreGen::computeScore(RefSubFilePaths paths) {
+
     QString trainModelQStr      = QString(QCoreApplication::applicationDirPath() + "/trainedModel.mat");
     QString uniformLBP8QStr     = QString(QCoreApplication::applicationDirPath() + "/UniformLBP8.txt");
 
@@ -198,8 +226,7 @@ void VfbManager::computeScores()
     emit scoreSig(scores);
 }
 
-
-VfbManager::~VfbManager()
+ScoreGen::~ScoreGen()
 {
     LocalizationScoreTerminate();
     AudioScoreTerminate();
@@ -208,3 +235,5 @@ VfbManager::~VfbManager()
     mclTerminateApplication();
     qDebug() << "Matlab Runtime Ended";
 }
+
+

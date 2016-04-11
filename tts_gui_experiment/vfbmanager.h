@@ -6,6 +6,24 @@
 #include <QVector>
 #include <typedef.h>
 #include <QAudioDecoder>
+#include <QThread>
+
+class ScoreGen : public QObject
+{
+    Q_OBJECT
+
+public:
+    ScoreGen(QObject *parent = 0);
+    ~ScoreGen();
+
+public slots:
+    void startMatlabEngine();
+    void computeScore(RefSubFilePaths paths);
+
+signals:
+    void scoreSig(Scores scores);
+};
+
 
 class VfbManager : public QObject
 {
@@ -32,14 +50,16 @@ private:
     double audioStartTime;
     const short ADR = 100;
 
+    QThread *scoreGenThread = 0;
+    ScoreGen *scoreGen = 0;
 
 public slots:
-    void startVFBProgram();
     void readAudioBuffer();
     void computeScores();
 
 signals:
     void audioSampleSig(AudioSample sample, bool ref);
+    void computeScoreSig(RefSubFilePaths paths);
     void scoreSig(Scores scores);
 
 };

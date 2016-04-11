@@ -50,7 +50,7 @@ private:
     enum Mode { NO_VFB, VFB_REF, VFB_SUB };
     Mode mode;
 
-    QThread     *vfbThread  = 0;
+//    QThread     *vfbThread  = 0;
     VfbManager  *vfbManager = 0;
 
     // Audio
@@ -106,6 +106,15 @@ private:
     VideoThread video;
     QCPCurve *lipsCurve;
 
+    // Score plot
+    QVector<QCPBars*> locaBars;
+    QVector<QCPBars*> magBars;
+    QVector<QCPBars*> voiceBars;
+    QVector<QCPBars*> lipsBars;
+    QVector<QCPBars*> avgScoreBars;
+    QCPColorGradient colorGrad;
+    int currentTrial;
+
 
 
 /* **************************************************** *
@@ -151,6 +160,7 @@ private:
     void setTongueTraj();
     void clearPlots();
     void setWaveform();
+    void setScorePlot();
     void beginTrial();
     void stopTrial();
     void setFilePath();
