@@ -435,14 +435,6 @@ p, li { white-space: pre-wrap; }
         </property>
        </widget>
       </item>
-      <item row="2" column="0" rowspan="2" colspan="3">
-       <widget class="QCustomPlot" name="locaPlot" native="true">
-        <property name="autoFillBackground">
-         <bool>true</bool>
-        </property>
-        <zorder></zorder>
-       </widget>
-      </item>
       <item row="0" column="0">
        <layout class="QVBoxLayout" name="verticalLayout_6">
         <item>
@@ -480,14 +472,14 @@ p, li { white-space: pre-wrap; }
         </item>
        </layout>
       </item>
-      <item row="1" column="3" rowspan="3" colspan="2">
-       <widget class="QCustomPlot" name="scorePlot" native="true">
+      <item row="0" column="3" colspan="2">
+       <widget class="QCustomPlot" name="waveformQCP" native="true">
         <property name="autoFillBackground">
          <bool>true</bool>
         </property>
        </widget>
       </item>
-      <item row="1" column="0" colspan="2">
+      <item row="1" column="0" rowspan="2" colspan="3">
        <layout class="QHBoxLayout" name="video_Layout" stretch="1,5">
         <item>
          <widget class="QGroupBox" name="videoContolsGroupBox">
@@ -587,17 +579,15 @@ p, li { white-space: pre-wrap; }
           <property name="styleSheet">
            <string notr="true">Background-color: #000;</string>
           </property>
-          <zorder>horizontalLayoutWidget_3</zorder>
          </widget>
         </item>
        </layout>
       </item>
-      <item row="0" column="3" colspan="2">
-       <widget class="QCustomPlot" name="waveformQCP" native="true">
+      <item row="1" column="3" rowspan="2" colspan="2">
+       <widget class="QCustomPlot" name="locaPlot" native="true">
         <property name="autoFillBackground">
          <bool>true</bool>
         </property>
-        <zorder>horizontalLayoutWidget_3</zorder>
        </widget>
       </item>
      </layout>

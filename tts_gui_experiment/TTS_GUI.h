@@ -13,6 +13,7 @@
 #include "localization.h"
 #include "voicemanager.h"
 #include "vfbmanager.h"
+#include "patientdialog.h"
 
 #include <QVector>
 #include <QAudioRecorder>
@@ -50,8 +51,8 @@ private:
     enum Mode { NO_VFB, VFB_REF, VFB_SUB };
     Mode mode;
 
-//    QThread     *vfbThread  = 0;
     VfbManager  *vfbManager = 0;
+    PatientDialog *patientDialog = 0;
 
     // Audio
     VoiceManager voice;
@@ -69,6 +70,7 @@ private:
     QList<QString> classUtter;
     QList<QStringList*> utter;
     int numTrials;
+    int currentTrial;
     bool sessionCompleted;
 
     // Output File locations
@@ -106,17 +108,6 @@ private:
     VideoThread video;
     QCPCurve *lipsCurve;
 
-    // Score plot
-    QVector<QCPBars*> locaBars;
-    QVector<QCPBars*> magBars;
-    QVector<QCPBars*> voiceBars;
-    QVector<QCPBars*> lipsBars;
-    QVector<QCPBars*> avgScoreBars;
-    QCPColorGradient colorGrad;
-    int currentTrial;
-
-
-
 /* **************************************************** *
  *              Methods                                 *
  * **************************************************** */
@@ -147,23 +138,20 @@ private slots:
     void updateVideoFeedImage(const QPixmap &image);
     void updateTrackLipsFeed(QVector<QPoint> lipsPos);
     void videoManager();
-    void updateScores(Scores scores);
 
 private:
     void loadConfig();
     void loadCalibration(QString calibFilename);
     void setupExperiment();
     void loadExperimentFile(QString experimentFile);
+    void beginTrial();
+    void stopTrial();
     void setVideo();
     void setVideoPlayer();
     void setAudio();
     void setTongueTraj();
     void clearPlots();
     void setWaveform();
-    void setScorePlot();
-    void clearScorePlot();
-    void beginTrial();
-    void stopTrial();
     void setFilePath();
     QVector<double> parseVector(QString myString, bool matrix);
     QString parseUtter(QString rawUtter);
@@ -177,6 +165,7 @@ signals:
     void stopRecording();
     void videoMode(VideoMode);
     void computeScoreSig();
+    void utterSig(QString);
 };
 
 #endif // TTS_GUI_H

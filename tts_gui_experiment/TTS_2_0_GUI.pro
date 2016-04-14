@@ -22,7 +22,8 @@ SOURCES += main.cpp\
     videothread.cpp \
     localization.cpp \
     voicemanager.cpp \
-    vfbmanager.cpp
+    vfbmanager.cpp \
+    patientdialog.cpp
 
 HEADERS  += TTS_GUI.h \
     qcustomplot.h \
@@ -35,11 +36,13 @@ HEADERS  += TTS_GUI.h \
     localization.h \
     voicemanager.h \
     vfbmanager.h \
-    typedef.h
+    typedef.h \
+    patientdialog.h
 
 FORMS    += \
     TTS_GUI.ui \
-    sensordisplay.ui
+    sensordisplay.ui \
+    patientdialog.ui
 
 LIBS += -lAdvapi32 -lgdi32 -luser32 -lshell32
 

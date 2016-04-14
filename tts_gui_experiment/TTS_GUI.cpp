@@ -9,7 +9,6 @@
 #include <QFile>
 #include <QAudioEncoderSettings>
 #include <QCloseEvent>
-
 #include <QCameraInfo>
 #include <QtXml>
 
@@ -89,18 +88,28 @@ void MainWindow::on_configButton_clicked()
 
         // Start Visual Feedback thread
         vfbManager = new VfbManager(this);
-
-        connect(vfbManager, SIGNAL(scoreSig(Scores)), this, SLOT(updateScores(Scores)));
         connect(this, SIGNAL(computeScoreSig()), vfbManager, SLOT(computeScores()));
 
         // Set session information
-
         vfbManager->setRootPath(ui->refPathEdit->toPlainText(), experiment_root);
 
         ui->playRefButton->setEnabled(true);
 
-        ui->scorePlot->setVisible(true);
-        setScorePlot();
+        // Start Patient Dialog
+        patientDialog = new PatientDialog(this);
+
+        connect(this, SIGNAL(utterSig(QString)), patientDialog, SLOT(updateUtter(QString)));
+        connect(vfbManager, SIGNAL(scoreSig(Scores)), patientDialog, SLOT(updateScores(Scores)));
+        connect(this, SIGNAL(save(bool)), patientDialog, SLOT(recording(bool)));
+        connect(&video, SIGNAL(processedImage(QPixmap)), patientDialog, SLOT(updateVideo(QPixmap)));
+
+        Qt::WindowFlags flags = patientDialog->windowFlags();
+        flags |= Qt::WindowMaximizeButtonHint;
+        patientDialog->setWindowFlags(flags);
+
+        patientDialog->show();
+        patientDialog->updateUtter(ui->utteranceBrowser->toPlainText());
+        patientDialog->setScorePlot(numTrials);
     }
 
     // Set instance variables for folder/file paths
@@ -410,7 +419,6 @@ void MainWindow::saveEMF() {
 void MainWindow::on_startStopTrialButton_toggled(bool checked)
 {
     if (checked) {
-        ui->startStopTrialButton->setText("Stop");
         beginTrial();
 
     } else {        
@@ -423,6 +431,7 @@ void MainWindow::beginTrial(){
     setFilePath();
     emit subOutPathSig(subOutPath);
     subOutPathReplay = subOutPath + "_video.avi";
+    ui->startStopTrialButton->setText("Stop");
 
     //Color the boxes
     QString formatUtterance = QString("<font size=\"34\" color=\"red\">%1</font>")
@@ -503,6 +512,10 @@ void MainWindow::stopTrial(){
         else if ((trialIdx + 1) < numTrials) {
             // Update to next trial
             ui->trialBox->setCurrentIndex(trialIdx + 1);
+
+            // Reset class box
+            ui->classBox->setCurrentIndex(0);
+            on_classBox_currentIndexChanged(0);
         }
 
         else {
@@ -952,149 +965,59 @@ void MainWindow::clearPlots() {
     }
 }
 
-
-/* Visual Feedback as Scores */
-void MainWindow::updateScores(Scores scores)
+/* Bio-Feedback */
+void MainWindow::on_vfbActivationCheckBox_toggled(bool checked)
 {
-    double scoreArray[5] = {scores.loca, scores.mag, scores.voice, scores.lips, scores.avg};
-    QRgb colors[5];
-    colorGrad.colorize(scoreArray, QCPRange(0.0, 10.0), colors, 5);
+    ui->vfbRefModeRadio->setEnabled(checked);
+    ui->vfbSubModeRadio->setEnabled(checked);
 
-    locaBars[currentTrial]->addData(currentTrial, scores.loca);
-    locaBars[currentTrial]->setBrush(QBrush(QColor(colors[0])));
+    ui->vfbSubModeRadio->setChecked(checked);
+    on_vfbSubModeRadio_toggled(checked);
 
-    magBars[currentTrial]->addData(currentTrial, scores.mag);
-    magBars[currentTrial]->setBrush(QBrush(QColor(colors[1])));
-
-    voiceBars[currentTrial]->addData(currentTrial, scores.voice);
-    voiceBars[currentTrial]->setBrush(QBrush(QColor(colors[2])));
-
-    lipsBars[currentTrial]->addData(currentTrial, scores.lips);
-    lipsBars[currentTrial]->setBrush(QBrush(QColor(colors[3])));
-
-    avgScoreBars[currentTrial]->addData(currentTrial, scores.avg);
-    avgScoreBars[currentTrial]->setBrush(QBrush(QColor(colors[4])));
-
-    ui->scorePlot->replot();
+    if(!checked) {
+        mode = NO_VFB;
+    }
 }
 
-void MainWindow::setScorePlot() {
+void MainWindow::on_vfbSubModeRadio_toggled(bool checked)
+{
+    ui->refPathEdit->setEnabled(checked);
+    ui->refWidget->setVisible(checked);
 
-    ui->scorePlot->plotLayout()->clear();
+    ui->playRefButton->setVisible(checked);
+    ui->playRefButton->setEnabled(false);
 
-    QCPMarginGroup *marginGroup = new QCPMarginGroup(ui->scorePlot);
-    QCPRange barRangeX(0, numTrials + 1);
-    QCPRange barRangeY(0, 10);
-
-    QCPAxisRect *locaAxis = new QCPAxisRect(ui->scorePlot);
-    QCPAxisRect *magAxis = new QCPAxisRect(ui->scorePlot);
-    QCPAxisRect *voiceAxis = new QCPAxisRect(ui->scorePlot);
-    QCPAxisRect *lipsAxis = new QCPAxisRect(ui->scorePlot);
-    QCPAxisRect *avgScoreAxis = new QCPAxisRect(ui->scorePlot);
-
-    QVector<QCPAxisRect*> scoreAxes;
-    scoreAxes << locaAxis << magAxis << voiceAxis << lipsAxis << avgScoreAxis;
-
-    foreach (QCPAxisRect* axis, scoreAxes) {
-        axis->setupFullAxesBox(true);
-        axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
-        axis->axis(QCPAxis::atBottom)->setRange(barRangeX);
-        axis->axis(QCPAxis::atBottom)->setAutoTickStep(false);
-        axis->axis(QCPAxis::atBottom)->setTickStep(1);
-        axis->axis(QCPAxis::atBottom)->setAutoSubTicks(false);
-        axis->axis(QCPAxis::atBottom)->setSubTickCount(0);
-        axis->axis(QCPAxis::atLeft)->setRange(barRangeY);
-        axis->axis(QCPAxis::atLeft)->setAutoTickStep(false);
-        axis->axis(QCPAxis::atLeft)->setTickStep(1);
-        axis->setMarginGroup(QCP::msLeft, marginGroup);
-    }
-
-
-    locaAxis->axis(QCPAxis::atTop)->setLabel("Localization");
-    magAxis->axis(QCPAxis::atTop)->setLabel("Magnetic");
-    voiceAxis->axis(QCPAxis::atTop)->setLabel("Voice");
-    lipsAxis->axis(QCPAxis::atTop)->setLabel("Lips");
-    avgScoreAxis->axis(QCPAxis::atTop)->setLabel("Average");
-
-    ui->scorePlot->plotLayout()->addElement(0, 0, avgScoreAxis);
-    ui->scorePlot->plotLayout()->addElement(1, 0, locaAxis);
-    ui->scorePlot->plotLayout()->addElement(1, 1, magAxis);
-    ui->scorePlot->plotLayout()->addElement(2, 0, voiceAxis);
-    ui->scorePlot->plotLayout()->addElement(2, 1, lipsAxis);
-
-    for (int i = 0; i <= numTrials; i++) {
-        locaBars.append(new QCPBars(locaAxis->axis(QCPAxis::atBottom), locaAxis->axis(QCPAxis::atLeft)));
-        magBars.append(new QCPBars(magAxis->axis(QCPAxis::atBottom), magAxis->axis(QCPAxis::atLeft)));
-        voiceBars.append(new QCPBars(voiceAxis->axis(QCPAxis::atBottom), voiceAxis->axis(QCPAxis::atLeft)));
-        lipsBars.append(new QCPBars(lipsAxis->axis(QCPAxis::atBottom), lipsAxis->axis(QCPAxis::atLeft)));
-        avgScoreBars.append(new QCPBars(avgScoreAxis->axis(QCPAxis::atBottom), avgScoreAxis->axis(QCPAxis::atLeft)));
-    }
-
-    QVector<QVector<QCPBars*>> scoreBars;
-    scoreBars << locaBars << magBars << voiceBars << lipsBars << avgScoreBars;
-
-    foreach (QVector<QCPBars*> bars, scoreBars) {
-
-        foreach(QCPBars* bar, bars) {
-            bar->setWidth(0.2);
-            bar->setPen(QPen(QColor(Qt::black)));
-
-            QVector<double> keys(numTrials+2);
-            QVector<double> values(keys.size(), 0.0);
-
-            for (int key = 0; key < keys.size(); key++) {
-                keys[key] = key;
-            }
-            bar->setData(keys, values);
-
-            ui->scorePlot->addPlottable(bar);
-        }
-    }
-
-    // Set Color Gradient and Scale
-    colorGrad.loadPreset(QCPColorGradient::gpIon);
-    QCPColorScale *colorScale = new QCPColorScale(ui->scorePlot);
-    colorScale->setGradient(colorGrad);
-    colorScale->setDataRange(barRangeY);
-    colorScale->setMarginGroup(QCP::msLeft, marginGroup);
-    colorScale->axis()->setAutoTickStep(false);
-    colorScale->axis()->setTickStep(1);
-    colorScale->axis()->setAutoSubTicks(false);
-    colorScale->axis()->setSubTickCount(0);
-
-    ui->scorePlot->plotLayout()->addElement(0, 2, colorScale);
-    ui->scorePlot->replot();
+    mode = checked ? VFB_SUB : VFB_REF;
 }
 
-void MainWindow::clearScorePlot()
+void MainWindow::on_playRefButton_clicked()
 {
-    QVector<QVector<QCPBars*>> scoreBars;
-    scoreBars << locaBars << magBars << voiceBars << lipsBars << avgScoreBars;
+    setFilePath();
 
-    foreach (QVector<QCPBars*> bars, scoreBars) {
+    vfbManager->playAudio();
 
-        foreach(QCPBars* bar, bars) {
+    // Update Tongue trajectory with reference
+    clearPlots();
+    updateRefTongueTraj();
 
-            QVector<double> keys(numTrials+2);
-            QVector<double> values(keys.size(), 0.0);
+    // Update audio waveform
+    vfbManager->getAudioSample();
+    connect(vfbManager, SIGNAL(audioSample(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
 
-            for (int key = 0; key < keys.size(); key++) {
-                keys[key] = key;
-            }
-            bar->setData(keys, values);
-        }
-    }
-
-    ui->scorePlot->replot();
+    // Update video feed
+    video.setReplay(vfbManager->getPaths().refLips);
+    emit videoMode(REPLAY_REF);
 }
 
 
 /* Manage Drop-down lists */
 void MainWindow::on_trialBox_currentIndexChanged(int index)
 {
-    // Reset class box
-    ui->classBox->setCurrentIndex(0);
-    on_classBox_currentIndexChanged(0);
+    // Enable Start/Stop button if session was completed
+    if (sessionCompleted) {
+        ui->startStopTrialButton->setEnabled(true);
+        ui->startStopTrialButton->setText("Start");
+    }
 }
 
 void MainWindow::on_classBox_currentIndexChanged(int index)
@@ -1121,11 +1044,11 @@ void MainWindow::on_classBox_currentIndexChanged(int index)
 
 void MainWindow::on_utteranceBox_currentIndexChanged(int index)
 {
-    ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(ui->classBox->currentIndex())->at(index) + QString("</font>"));
+    QString newUtter = utter.at(ui->classBox->currentIndex())->at(index);
+    ui->utteranceBrowser->setText(QString("<font size=\"40\">") + newUtter + QString("</font>"));
     ui->utteranceBrowser->setAlignment(Qt::AlignCenter);
 
-    // Clear score bar plots
-    clearScorePlot();
+    emit utterSig(newUtter);
 
     // Enable Start/Stop button if session was completed
     if (sessionCompleted) {
@@ -1171,6 +1094,8 @@ void MainWindow::setFilePath()
         paths.trialNb   = currentTrial;
 
         vfbManager->setPaths(paths);
+
+        patientDialog->setCurrentTrial(currentTrial);
     }
 }
 
@@ -1238,6 +1163,11 @@ void MainWindow::closeEvent(QCloseEvent *event){
         delete vfbManager;
     }
 
+    if (patientDialog) {
+        qDebug() << "Closing patient dialog";
+        delete patientDialog;
+    }
+
     emit stopRecording();
 
     // Closing procedures
@@ -1247,50 +1177,4 @@ void MainWindow::closeEvent(QCloseEvent *event){
 MainWindow::~MainWindow()
 {
     delete ui;
-}
-
-
-void MainWindow::on_vfbActivationCheckBox_toggled(bool checked)
-{
-    ui->vfbRefModeRadio->setEnabled(checked);
-    ui->vfbSubModeRadio->setEnabled(checked);
-
-    ui->vfbSubModeRadio->setChecked(checked);
-    on_vfbSubModeRadio_toggled(checked);
-
-    if(!checked) {
-        mode = NO_VFB;
-    }
-}
-
-void MainWindow::on_vfbSubModeRadio_toggled(bool checked)
-{
-    ui->refPathEdit->setEnabled(checked);
-    ui->refWidget->setVisible(checked);
-
-    ui->playRefButton->setVisible(checked);
-    ui->playRefButton->setEnabled(false);
-
-    ui->scorePlot->setVisible(checked);
-
-    mode = checked ? VFB_SUB : VFB_REF;
-}
-
-void MainWindow::on_playRefButton_clicked()
-{
-    setFilePath();
-
-    vfbManager->playAudio();
-
-    // Update Tongue trajectory with reference
-    clearPlots();
-    updateRefTongueTraj();
-
-    // Update audio waveform
-    vfbManager->getAudioSample();
-    connect(vfbManager, SIGNAL(audioSample(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
-
-    // Update video feed
-    video.setReplay(vfbManager->getPaths().refLips);
-    emit videoMode(REPLAY_REF);
 }

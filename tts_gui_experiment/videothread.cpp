@@ -326,12 +326,19 @@ VideoReadWorker::VideoReadWorker() {
 
 void VideoReadWorker::run(){
     // Send info needed for saving video data into a file
+
+    int frameWidthDesired = 1280;
+    int frameHeightDesired = 720;
+    int fps = 30;
+    int fourCC = CV_FOURCC('D','I','V','3');
+
+    camera.set(CV_CAP_PROP_FRAME_WIDTH, frameWidthDesired);
+    camera.set(CV_CAP_PROP_FRAME_HEIGHT, frameHeightDesired);
+    camera.set(CV_CAP_PROP_FPS, fps);   // Set frame per second to camera
+
     int frame_width  = static_cast<int>(camera.get(CV_CAP_PROP_FRAME_WIDTH));
     int frame_height = static_cast<int>(camera.get(CV_CAP_PROP_FRAME_HEIGHT));
-    int fourCC = CV_FOURCC('D','I','V','3');
-    int fps = 30;
 
-    camera.set(CV_CAP_PROP_FPS, fps);   // Set frame per second to camera
     emit cameraInfo(frame_width, frame_height, fourCC, fps);
 
     // Read video frames from camera
@@ -347,7 +354,6 @@ void VideoReadWorker::run(){
 
     // Closing procedure
     camera.release();
-    qDebug() << "\n -- Camera Released\n";
 }
 
 void VideoReadWorker::stop(){
@@ -361,4 +367,6 @@ VideoReadWorker::~VideoReadWorker(){
     if(camera.isOpened()) {
         camera.release();
     }
+
+    qDebug() << "End of VideoRead Worker - Camera Released";
 }
