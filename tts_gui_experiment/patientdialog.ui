@@ -34,26 +34,15 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="utterEdit">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
+        <widget class="QPlainTextEdit" name="utterEdit">
          <property name="font">
           <font>
            <pointsize>20</pointsize>
           </font>
          </property>
-         <property name="text">
-          <string>...</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-         <property name="readOnly">
-          <bool>true</bool>
+         <property name="plainText">
+          <string>...
+</string>
          </property>
         </widget>
        </item>
@@ -104,9 +93,15 @@
    <item>
     <layout class="QHBoxLayout" name="bottom_layout" stretch="2,1">
      <item>
-      <layout class="QHBoxLayout" name="score_plot_layout">
+      <layout class="QHBoxLayout" name="score_plot_layout" stretch="0">
        <item>
         <widget class="QCustomPlot" name="scorePlot" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="autoFillBackground">
           <bool>true</bool>
          </property>
@@ -116,8 +111,17 @@
      </item>
      <item>
       <layout class="QVBoxLayout" name="video_layout" stretch="5,2">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetMinimumSize</enum>
+       </property>
        <item>
         <widget class="QLabel" name="videoFeed">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="autoFillBackground">
           <bool>false</bool>
          </property>

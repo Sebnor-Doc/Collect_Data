@@ -48,7 +48,7 @@ private:
     Localization loca;
 
     // Mode selection
-    enum Mode { NO_VFB, VFB_REF, VFB_SUB };
+    enum Mode { NO_VFB, REF_VFB, SUB_VFB, SUB_NO_VFB };
     Mode mode;
 
     VfbManager  *vfbManager = 0;
@@ -131,6 +131,8 @@ private slots:
     void on_vfbActivationCheckBox_toggled(bool checked);
     void on_vfbSubModeRadio_toggled(bool checked);
     void on_playRefButton_clicked();
+    void on_vfbRefModeRadio_toggled(bool checked);
+    void on_vfbSubNoVfbModeRadio_toggled(bool checked);
 
     void updateTongueTraj(LocaData locaData);
     void updateRefTongueTraj();
@@ -138,6 +140,7 @@ private slots:
     void updateVideoFeedImage(const QPixmap &image);
     void updateTrackLipsFeed(QVector<QPoint> lipsPos);
     void videoManager();
+    void scoreGenerated();
 
 private:
     void loadConfig();
@@ -155,6 +158,8 @@ private:
     void setFilePath();
     QVector<double> parseVector(QString myString, bool matrix);
     QString parseUtter(QString rawUtter);
+    void showVfbWidgets(bool isVfbSub);
+    QString formatUtterance(QString rawUtter);
 
 /* ****************************
  *              Signals

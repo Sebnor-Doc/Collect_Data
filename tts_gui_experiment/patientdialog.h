@@ -33,6 +33,7 @@ private:
 public:
     void setScorePlot(int numTrials);
     void setCurrentTrial(int trial);
+    void showScores(bool show);
 
 public slots:
     void updateUtter(QString utter);

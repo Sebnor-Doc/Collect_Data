@@ -278,5 +278,3 @@ ScoreGen::~ScoreGen()
     mclTerminateApplication();
     qDebug() << "Matlab Runtime Ended";
 }
-
-

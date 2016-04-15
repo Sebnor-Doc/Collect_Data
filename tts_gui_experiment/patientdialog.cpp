@@ -4,17 +4,22 @@
 PatientDialog::PatientDialog(QWidget *parent) : QDialog(parent), ui(new Ui::PatientDialog)
 {
     ui->setupUi(this);
+
+    // Avoid the other widgets to resize when score plot is hidden
+    QSizePolicy sp_retain = ui->scorePlot->sizePolicy();
+    sp_retain.setRetainSizeWhenHidden(true);
+    ui->scorePlot->setSizePolicy(sp_retain);
 }
 
 void PatientDialog::updateUtter(QString utter)
 {
-    ui->utterEdit->setText(utter);
-    clearScorePlot();
+    ui->utterEdit->setPlainText(utter);
 }
 
 void PatientDialog::updateVideo(QPixmap image)
 {
-    ui->videoFeed->setPixmap(image);
+    QPixmap scaledImg = image.scaled(ui->videoFeed->width(), ui->videoFeed->height());
+    ui->videoFeed->setPixmap(scaledImg);
 }
 
 void PatientDialog::recording(bool isRecording)
@@ -25,7 +30,7 @@ void PatientDialog::recording(bool isRecording)
         styleSheet = "color: red";
     }
     else {
-        styleSheet = "color: black";
+        styleSheet = "color: grey";
     }
 
     ui->utterEdit->setStyleSheet(styleSheet);
@@ -39,25 +44,33 @@ void PatientDialog::updateScores(Scores scores)
     QRgb colors[5];
     colorGrad.colorize(scoreArray, QCPRange(0.0, 10.0), colors, 5);
 
+    locaBars[currentTrial]->removeData(currentTrial);
     locaBars[currentTrial]->addData(currentTrial, scores.loca);
     locaBars[currentTrial]->setBrush(QBrush(QColor(colors[0])));
 
+    magBars[currentTrial]->removeData(currentTrial);
     magBars[currentTrial]->addData(currentTrial, scores.mag);
     magBars[currentTrial]->setBrush(QBrush(QColor(colors[1])));
 
+    voiceBars[currentTrial]->removeData(currentTrial);
     voiceBars[currentTrial]->addData(currentTrial, scores.voice);
     voiceBars[currentTrial]->setBrush(QBrush(QColor(colors[2])));
 
+    lipsBars[currentTrial]->removeData(currentTrial);
     lipsBars[currentTrial]->addData(currentTrial, scores.lips);
     lipsBars[currentTrial]->setBrush(QBrush(QColor(colors[3])));
 
+    avgScoreBars[currentTrial]->removeData(currentTrial);
     avgScoreBars[currentTrial]->addData(currentTrial, scores.avg);
     avgScoreBars[currentTrial]->setBrush(QBrush(QColor(colors[4])));
 
     ui->scorePlot->replot();
 
     // Set digital indicator
-    ui->avgScoreEdit->setText(QString::number(scores.avg));
+    ui->avgScoreEdit->setText(QString::number(scores.avg, 'f', 2)); // Decimal with 2 digits after decimal point
+
+    // Set visual cue for next word
+    ui->utterEdit->setStyleSheet("color: green");
 }
 
 void PatientDialog::setScorePlot(int numTrials) {
@@ -153,6 +166,17 @@ void PatientDialog::setScorePlot(int numTrials) {
 void PatientDialog::setCurrentTrial(int trial)
 {
     currentTrial = trial;
+
+    if (currentTrial == 1) {
+        clearScorePlot();
+    }
+}
+
+void PatientDialog::showScores(bool show)
+{
+    ui->scorePlot->setVisible(show);
+    ui->avgScoreLabel->setVisible(show);
+    ui->avgScoreEdit->setVisible(show);
 }
 
 void PatientDialog::clearScorePlot()

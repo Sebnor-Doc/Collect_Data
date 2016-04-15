@@ -84,7 +84,7 @@ void MainWindow::on_configButton_clicked()
     ui->configButton->setEnabled(false);
 
     // Start Visual Feedback thread
-    if (mode == VFB_SUB) {
+    if (mode == SUB_VFB || mode == SUB_NO_VFB) {
 
         // Start Visual Feedback thread
         vfbManager = new VfbManager(this);
@@ -93,13 +93,12 @@ void MainWindow::on_configButton_clicked()
         // Set session information
         vfbManager->setRootPath(ui->refPathEdit->toPlainText(), experiment_root);
 
-        ui->playRefButton->setEnabled(true);
-
         // Start Patient Dialog
         patientDialog = new PatientDialog(this);
 
         connect(this, SIGNAL(utterSig(QString)), patientDialog, SLOT(updateUtter(QString)));
         connect(vfbManager, SIGNAL(scoreSig(Scores)), patientDialog, SLOT(updateScores(Scores)));
+        connect(vfbManager, SIGNAL(scoreSig(Scores)), this, SLOT(scoreGenerated()));
         connect(this, SIGNAL(save(bool)), patientDialog, SLOT(recording(bool)));
         connect(&video, SIGNAL(processedImage(QPixmap)), patientDialog, SLOT(updateVideo(QPixmap)));
 
@@ -108,8 +107,12 @@ void MainWindow::on_configButton_clicked()
         patientDialog->setWindowFlags(flags);
 
         patientDialog->show();
-        patientDialog->updateUtter(ui->utteranceBrowser->toPlainText());
+        patientDialog->updateUtter(ui->utteranceEdit->toPlainText());
         patientDialog->setScorePlot(numTrials);
+
+        bool showVfb = (mode == SUB_VFB);
+        ui->playRefButton->setEnabled(showVfb);
+        patientDialog->showScores(showVfb);
     }
 
     // Set instance variables for folder/file paths
@@ -234,7 +237,7 @@ void MainWindow::setupExperiment()
     loadExperimentFile(ui->expFileEdit->toPlainText());
 
     // Create folder structure to house experimental data
-    QString folderPrefix = (mode == VFB_REF) ? "Ref" : "Sub";
+    QString folderPrefix = (mode == REF_VFB) ? "Ref" : "Sub";
 
     experiment_root = ui->subPathEdit->toPlainText() + "/" + folderPrefix + ui->subNbEdit->text();
 
@@ -434,10 +437,10 @@ void MainWindow::beginTrial(){
     ui->startStopTrialButton->setText("Stop");
 
     //Color the boxes
-    QString formatUtterance = QString("<font size=\"34\" color=\"red\">%1</font>")
-                              .arg(utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex()));
-    ui->utteranceBrowser->setText(formatUtterance);
-    ui->utteranceBrowser->setAlignment(Qt::AlignCenter);
+    QString newUtter = utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex());
+    newUtter = formatUtterance(newUtter);
+    ui->utteranceEdit->setPlainText(newUtter);
+    ui->utteranceEdit->setStyleSheet("color: red");
 
     // Disable video playback
     if (ui->videoPlaybackRadio->isChecked()) {
@@ -454,7 +457,7 @@ void MainWindow::beginTrial(){
     // Reset plots
     clearPlots();
 
-    if (mode == VFB_SUB) {
+    if (mode == SUB_VFB) {
         // TODO: Update filepaths
     }
 }
@@ -483,17 +486,20 @@ void MainWindow::stopTrial(){
         else if ( (utterIdx + 1) < numUtter ) {
             // Update to next utterance of current class
             ui->utteranceBox->setCurrentIndex(utterIdx + 1);
+            ui->trialBox->setCurrentIndex(0);
         }
 
         else if ( (classIdx + 1) < numClass ) {
             // Update to next class
             ui->classBox->setCurrentIndex(classIdx + 1);
+            ui->trialBox->setCurrentIndex(0);
         }
 
         else {
             // Session is over, all utterances haven been recorded
             sessionCompleted = true;
-            ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(classIdx)->at(utterIdx) + QString("</font>"));
+            QString newUtter = formatUtterance(utter.at(classIdx)->at(utterIdx));
+            ui->utteranceEdit->setPlainText(newUtter);
         }
     }
 
@@ -521,21 +527,27 @@ void MainWindow::stopTrial(){
         else {
             // Session is over, all utterances haven been recorded
             sessionCompleted = true;
-            ui->utteranceBrowser->setText(QString("<font size=\"40\">") + utter.at(classIdx)->at(utterIdx) + QString("</font>"));
+            QString newUtter = formatUtterance(utter.at(classIdx)->at(utterIdx));
+            ui->utteranceEdit->setPlainText(newUtter);
         }
     }
 
-    // Update start/stop button status based on session completion status
-    if (sessionCompleted) {
-        ui->startStopTrialButton->setText("Done!");
+
+    // Manage the status of
+    if (mode == SUB_VFB || mode == SUB_NO_VFB) {
         ui->startStopTrialButton->setEnabled(false);
+        ui->playRefButton->setEnabled(false);
+    }
+
+    ui->videoPlaybackRadio->setEnabled(true);
+
+    // Update start/stop button text based on session completion status
+    if (sessionCompleted) {
+        ui->startStopTrialButton->setText("Done!");       
     }
     else {
         ui->startStopTrialButton->setText("Start");
     }
-
-    // Manage video playback
-    ui->videoPlaybackRadio->setEnabled(true);
 }
 
 
@@ -671,6 +683,7 @@ void MainWindow::videoManager() {
 
     emit videoMode(mode);
 }
+
 
 void MainWindow::updateVideoFeedImage(const QPixmap &image)
 {
@@ -970,24 +983,39 @@ void MainWindow::on_vfbActivationCheckBox_toggled(bool checked)
 {
     ui->vfbRefModeRadio->setEnabled(checked);
     ui->vfbSubModeRadio->setEnabled(checked);
+    ui->vfbSubNoVfbModeRadio->setEnabled(checked);
 
     ui->vfbSubModeRadio->setChecked(checked);
     on_vfbSubModeRadio_toggled(checked);
 
     if(!checked) {
         mode = NO_VFB;
+        showVfbWidgets(false);
     }
 }
 
 void MainWindow::on_vfbSubModeRadio_toggled(bool checked)
 {
-    ui->refPathEdit->setEnabled(checked);
-    ui->refWidget->setVisible(checked);
+    if (checked) {
+        showVfbWidgets(true);
+        mode = SUB_VFB;
+    }
+}
 
-    ui->playRefButton->setVisible(checked);
-    ui->playRefButton->setEnabled(false);
+void MainWindow::on_vfbRefModeRadio_toggled(bool checked)
+{
+    if (checked) {
+        showVfbWidgets(false);
+        mode = REF_VFB;
+    }
+}
 
-    mode = checked ? VFB_SUB : VFB_REF;
+void MainWindow::on_vfbSubNoVfbModeRadio_toggled(bool checked)
+{
+    if (checked) {
+        showVfbWidgets(false);
+        mode = SUB_NO_VFB;
+    }
 }
 
 void MainWindow::on_playRefButton_clicked()
@@ -1002,13 +1030,29 @@ void MainWindow::on_playRefButton_clicked()
 
     // Update audio waveform
     vfbManager->getAudioSample();
-    connect(vfbManager, SIGNAL(audioSample(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
+    connect(vfbManager, SIGNAL(audioSampleSig(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
 
     // Update video feed
     video.setReplay(vfbManager->getPaths().refLips);
     emit videoMode(REPLAY_REF);
 }
 
+void MainWindow::showVfbWidgets(bool isVfbSub)
+{
+    ui->refPathEdit->setEnabled(isVfbSub);
+    ui->refWidget->setVisible(isVfbSub);
+
+    ui->playRefButton->setVisible(isVfbSub);
+    ui->playRefButton->setEnabled(false);
+}
+
+void MainWindow::scoreGenerated()
+{
+    if (!sessionCompleted) {
+        ui->startStopTrialButton->setEnabled(true);
+        ui->playRefButton->setEnabled(true);
+    }
+}
 
 /* Manage Drop-down lists */
 void MainWindow::on_trialBox_currentIndexChanged(int index)
@@ -1017,7 +1061,10 @@ void MainWindow::on_trialBox_currentIndexChanged(int index)
     if (sessionCompleted) {
         ui->startStopTrialButton->setEnabled(true);
         ui->startStopTrialButton->setText("Start");
+        ui->playRefButton->setEnabled(true);
     }
+
+    ui->utteranceEdit->setStyleSheet("color: black");
 }
 
 void MainWindow::on_classBox_currentIndexChanged(int index)
@@ -1045,8 +1092,9 @@ void MainWindow::on_classBox_currentIndexChanged(int index)
 void MainWindow::on_utteranceBox_currentIndexChanged(int index)
 {
     QString newUtter = utter.at(ui->classBox->currentIndex())->at(index);
-    ui->utteranceBrowser->setText(QString("<font size=\"40\">") + newUtter + QString("</font>"));
-    ui->utteranceBrowser->setAlignment(Qt::AlignCenter);
+    newUtter = formatUtterance(newUtter);
+    ui->utteranceEdit->setPlainText(newUtter);
+    ui->utteranceEdit->setStyleSheet("color: black");
 
     emit utterSig(newUtter);
 
@@ -1054,6 +1102,7 @@ void MainWindow::on_utteranceBox_currentIndexChanged(int index)
     if (sessionCompleted) {
         ui->startStopTrialButton->setEnabled(true);
         ui->startStopTrialButton->setText("Start");
+        ui->playRefButton->setEnabled(true);
     }
 }
 
@@ -1075,7 +1124,7 @@ void MainWindow::setFilePath()
             experiment_utter + "_" + QString::number(currentTrial) + "/" + experiment_utter + "_" +
             QString::number(currentTrial);
 
-    if (mode == VFB_SUB) {
+    if (mode == SUB_VFB) {
 
         RefSubFilePaths paths;
         QString refOutPath = QString("%1/%2/%3/%3_1/%3_1").arg(vfbManager->getRefRootPath()).arg(experiment_class).arg(experiment_utter);
@@ -1152,6 +1201,19 @@ QString MainWindow::parseUtter(QString rawUtter) {
     return parsedUtter;
 }
 
+QString MainWindow::formatUtterance(QString rawUtter)
+{
+    QString formatUtter;
+
+    QStringList utterList = rawUtter.split(";");
+
+    foreach (QString utter, utterList) {
+        formatUtter += utter.trimmed() + "\n";
+    }
+
+    return formatUtter;
+}
+
 
 /* Closing methods */
 void MainWindow::closeEvent(QCloseEvent *event){
@@ -1178,3 +1240,7 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
+
+
+
+
