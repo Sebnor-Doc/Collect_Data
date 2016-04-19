@@ -107,6 +107,7 @@ private:
     // Display video
     VideoThread video;
     QCPCurve *lipsCurve;
+    QCPCurve *lipsBox;
 
 /* **************************************************** *
  *              Methods                                 *

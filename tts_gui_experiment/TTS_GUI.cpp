@@ -623,12 +623,15 @@ void MainWindow::setVideo() {
 void MainWindow::setVideoPlayer() {
     /* Set the QCP curve where lips boundaries are identified */
 
+    QCPRange XaxisRange(0, frameWidth - 1);
+    QCPRange YaxisRange(0, frameHeight - 1);
+
     QCPAxisRect *pixelAxis = ui->videoFeed->axisRect();
     lipsCurve = new QCPCurve(pixelAxis->axis(QCPAxis::atBottom), pixelAxis->axis(QCPAxis::atLeft));
     ui->videoFeed->addPlottable(lipsCurve);
 
-    pixelAxis->axis(QCPAxis::atBottom)->setRange(0, 319);
-    pixelAxis->axis(QCPAxis::atLeft)->setRange(0, 239);
+    pixelAxis->axis(QCPAxis::atBottom)->setRange(XaxisRange);
+    pixelAxis->axis(QCPAxis::atLeft)->setRange(YaxisRange);
     pixelAxis->axis(QCPAxis::atLeft)->setRangeReversed(true);
     pixelAxis->setAutoMargins(false);
     pixelAxis->setMargins(QMargins(1, 1, 1, 1));
@@ -645,6 +648,24 @@ void MainWindow::setVideoPlayer() {
     lipsCurve->setPen(QPen(Qt::green));
     lipsCurve->setLineStyle(QCPCurve::lsLine);
     lipsCurve->setScatterStyle(QCPScatterStyle::ssCircle);
+
+    // Set Lips box
+    lipsBox = new QCPCurve(pixelAxis->axis(QCPAxis::atBottom), pixelAxis->axis(QCPAxis::atLeft));
+    ui->videoFeed->addPlottable(lipsBox);
+
+    lipsBox->setPen(QPen(Qt::red));
+    lipsBox->setLineStyle(QCPCurve::lsLine);
+    lipsBox->setScatterStyle(QCPScatterStyle::ssCircle);
+
+    QVector<double> boxKey, boxVal;
+    double XaxisLength = XaxisRange.upper - XaxisRange.lower;
+    double YaxisLength = YaxisRange.upper - YaxisRange.lower;
+
+    boxKey << (XaxisLength/3.0) << 2 * (XaxisLength/3.0) << 2 * (XaxisLength/3.0) << (XaxisLength/3.0) << (XaxisLength/3.0);
+    boxVal << (YaxisLength/3.0) << (YaxisLength/3.0) << 2 * (YaxisLength/3.0) << 2 * (YaxisLength/3.0) << (YaxisLength/3.0);
+    lipsBox->setData(boxKey, boxVal);
+
+    ui->videoFeed->replot();
 }
 
 void MainWindow::videoManager() {
@@ -680,7 +701,6 @@ void MainWindow::videoManager() {
 
     emit videoMode(mode);
 }
-
 
 void MainWindow::updateVideoFeedImage(const QPixmap &image)
 {

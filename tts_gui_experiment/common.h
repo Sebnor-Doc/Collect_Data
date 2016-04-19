@@ -21,4 +21,8 @@ const int RANGE_VALS = 33000;
 const int NUM_PTS = 100;
 const int AVG_N = 10;
 
+// Video
+const int frameWidth    = 320;
+const int frameHeight   = 240;
+
 #endif // COMMON_H

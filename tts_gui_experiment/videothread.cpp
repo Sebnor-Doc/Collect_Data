@@ -2,6 +2,7 @@
 #include <QCameraInfo>
 #include <QPixmap>
 #include <qmath.h>
+#include "common.h"
 
 /* *****************
  * VideoThread
@@ -92,6 +93,9 @@ void VideoThread::emitVideo(Mat *frame)
     Mat procFrame;
     cv::cvtColor(*frame, procFrame, CV_BGR2RGB);       // invert BGR to RGB
 
+    // Lower frame resolution to reduce execution time
+    cv::resize(procFrame, procFrame, Size(frameWidth, frameHeight), 0, 0, INTER_AREA);
+
     if (mode == RAW_FEED) {
         QImage videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
         QPixmap videoPixmap = QPixmap::fromImage(videoImg);
@@ -106,9 +110,6 @@ void VideoThread::emitVideo(Mat *frame)
 /* Track Lips */
 void VideoThread::trackLips(cv::Mat &frame)
 {
-    // Lower frame resolution to reduce execution time
-    cv::resize(frame, frame, Size(320, 240), 0, 0, INTER_AREA);
-
     // Process frame to extract a lips into a binary image
     Mat bwFrame = extractLipsAsBWImg(frame);
 
@@ -263,7 +264,8 @@ void VideoThread::updatePlaybackIdx(int idx) {
         replayVideo >> replayFrame;
 
         cv::cvtColor(replayFrame, replayFrame, CV_BGR2RGB);       // invert BGR to RGB
-        QImage replayImg  = QImage((uchar*)replayFrame.data, replayFrame.cols, replayFrame.rows, replayFrame.step, QImage::Format_RGB888);
+        cv::resize(replayFrame, replayFrame, Size(frameWidth, frameHeight), 0, 0, INTER_AREA);
+        QImage replayImg     = QImage((uchar*)replayFrame.data, replayFrame.cols, replayFrame.rows, replayFrame.step, QImage::Format_RGB888);
         QPixmap replayPixmap = QPixmap::fromImage(replayImg);
 
         emit processedImage(replayPixmap);
