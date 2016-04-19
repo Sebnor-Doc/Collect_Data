@@ -1204,8 +1204,13 @@ QString MainWindow::formatUtterance(QString rawUtter)
 
     QStringList utterList = rawUtter.split(";");
 
-    foreach (QString utter, utterList) {
-        formatUtter += utter.trimmed() + "\n";
+    for (int i = 0; i < utterList.size(); i++) {
+
+        formatUtter += utterList.at(i).trimmed();
+
+        if (i != (utterList.size() - 1) ) {
+             formatUtter += "\n";
+        }
     }
 
     return formatUtter;

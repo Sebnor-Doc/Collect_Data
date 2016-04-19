@@ -13,7 +13,17 @@ PatientDialog::PatientDialog(QWidget *parent) : QDialog(parent), ui(new Ui::Pati
 
 void PatientDialog::updateUtter(QString utter)
 {
-    ui->utterEdit->setPlainText(utter);
+    QStringList utterList = utter.split("\n");
+
+    if (utterList.size() == 3) {
+        ui->utterEdit->setPlainText(utterList.at(0));
+        ui->koreanEdit->setPlainText(utterList.at(1));
+        ui->englishEdit->setPlainText(utterList.at(2));
+    }
+
+    else {
+        ui->utterEdit->setPlainText(utter);
+    }
 }
 
 void PatientDialog::updateVideo(QPixmap image)

@@ -15,14 +15,84 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="1,4">
    <item>
-    <layout class="QHBoxLayout" name="top_layout" stretch="3,1">
+    <layout class="QHBoxLayout" name="top_layout" stretch="2,3,1">
      <item>
-      <layout class="QVBoxLayout" name="utter_layout" stretch="1,4">
+      <layout class="QVBoxLayout" name="utter_info_layout" stretch="1,1">
+       <item>
+        <layout class="QVBoxLayout" name="korean_layout" stretch="1,2">
+         <item>
+          <widget class="QLabel" name="koreanLabel">
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>Korean</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPlainTextEdit" name="koreanEdit">
+           <property name="font">
+            <font>
+             <pointsize>20</pointsize>
+            </font>
+           </property>
+           <property name="plainText">
+            <string>...
+</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="english_layout" stretch="1,2">
+         <item>
+          <widget class="QLabel" name="englishLabel">
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>English</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPlainTextEdit" name="englishEdit">
+           <property name="font">
+            <font>
+             <pointsize>20</pointsize>
+            </font>
+           </property>
+           <property name="plainText">
+            <string>...
+</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="utter_layout" stretch="1,8">
        <item>
         <widget class="QLabel" name="utterLabel">
          <property name="font">
           <font>
            <pointsize>10</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
           </font>
          </property>
          <property name="text">
@@ -37,7 +107,7 @@
         <widget class="QPlainTextEdit" name="utterEdit">
          <property name="font">
           <font>
-           <pointsize>20</pointsize>
+           <pointsize>30</pointsize>
           </font>
          </property>
          <property name="plainText">
@@ -49,12 +119,14 @@
       </layout>
      </item>
      <item>
-      <layout class="QVBoxLayout" name="avg_score_layout" stretch="1,4">
+      <layout class="QVBoxLayout" name="avg_score_layout" stretch="1,8">
        <item>
         <widget class="QLabel" name="avgScoreLabel">
          <property name="font">
           <font>
            <pointsize>10</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
           </font>
          </property>
          <property name="text">
@@ -75,7 +147,7 @@
          </property>
          <property name="font">
           <font>
-           <pointsize>20</pointsize>
+           <pointsize>50</pointsize>
           </font>
          </property>
          <property name="text">
@@ -91,9 +163,48 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="bottom_layout" stretch="2,1">
+    <layout class="QHBoxLayout" name="bottom_layout" stretch="2">
      <item>
-      <layout class="QHBoxLayout" name="score_plot_layout" stretch="0">
+      <layout class="QHBoxLayout" name="score_plot_layout" stretch="1,2">
+       <item>
+        <layout class="QVBoxLayout" name="video_layout" stretch="5,2">
+         <property name="sizeConstraint">
+          <enum>QLayout::SetMinimumSize</enum>
+         </property>
+         <item>
+          <widget class="QLabel" name="videoFeed">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="autoFillBackground">
+            <bool>false</bool>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">Background-color: #000;</string>
+           </property>
+           <property name="text">
+            <string>TextLabel</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
        <item>
         <widget class="QCustomPlot" name="scorePlot" native="true">
          <property name="sizePolicy">
@@ -106,45 +217,6 @@
           <bool>true</bool>
          </property>
         </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <layout class="QVBoxLayout" name="video_layout" stretch="5,2">
-       <property name="sizeConstraint">
-        <enum>QLayout::SetMinimumSize</enum>
-       </property>
-       <item>
-        <widget class="QLabel" name="videoFeed">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="autoFillBackground">
-          <bool>false</bool>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">Background-color: #000;</string>
-         </property>
-         <property name="text">
-          <string>TextLabel</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
        </item>
       </layout>
      </item>
