@@ -131,6 +131,7 @@ private slots:
     void on_vfbActivationCheckBox_toggled(bool checked);
     void on_vfbSubModeRadio_toggled(bool checked);
     void on_playRefButton_clicked();
+    void playRefFinished();
     void on_vfbRefModeRadio_toggled(bool checked);
     void on_vfbSubNoVfbModeRadio_toggled(bool checked);
 

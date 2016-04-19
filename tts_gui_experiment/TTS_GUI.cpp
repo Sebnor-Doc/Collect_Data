@@ -100,7 +100,7 @@ void MainWindow::on_configButton_clicked()
         connect(vfbManager, SIGNAL(scoreSig(Scores)), patientDialog, SLOT(updateScores(Scores)));
         connect(vfbManager, SIGNAL(scoreSig(Scores)), this, SLOT(scoreGenerated()));
         connect(this, SIGNAL(save(bool)), patientDialog, SLOT(recording(bool)));
-        connect(&video, SIGNAL(processedImage(QPixmap)), patientDialog, SLOT(updateVideo(QPixmap)));
+        connect(vfbManager, SIGNAL(voiceReplayFinished()), this, SLOT(playRefFinished()));
 
         Qt::WindowFlags flags = patientDialog->windowFlags();
         flags |= Qt::WindowMaximizeButtonHint;
@@ -1017,6 +1017,9 @@ void MainWindow::on_vfbSubNoVfbModeRadio_toggled(bool checked)
 
 void MainWindow::on_playRefButton_clicked()
 {
+    ui->playRefButton->setEnabled(false);
+    ui->startStopTrialButton->setEnabled(false);
+
     setFilePath();
 
     vfbManager->playAudio();
@@ -1030,8 +1033,16 @@ void MainWindow::on_playRefButton_clicked()
     connect(vfbManager, SIGNAL(audioSampleSig(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
 
     // Update video feed
+    connect(&video, SIGNAL(processedImage(QPixmap)), patientDialog, SLOT(updateVideo(QPixmap)));
     video.setReplay(vfbManager->getPaths().refLips);
     emit videoMode(REPLAY_REF);
+}
+
+void MainWindow::playRefFinished()
+{
+    disconnect(&video, SIGNAL(processedImage(QPixmap)), patientDialog, SLOT(updateVideo(QPixmap)));
+    ui->playRefButton->setEnabled(true);
+    ui->startStopTrialButton->setEnabled(true);
 }
 
 void MainWindow::showVfbWidgets(bool isVfbSub)

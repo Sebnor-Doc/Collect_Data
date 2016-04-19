@@ -7,6 +7,7 @@
 #include <typedef.h>
 #include <QAudioDecoder>
 #include <QThread>
+#include <QSoundEffect>
 
 class ScoreGen : public QObject
 {
@@ -29,6 +30,21 @@ class VfbManager : public QObject
 {
     Q_OBJECT
 
+private:
+    QString refRootPath;
+    QString subRootPath;
+    RefSubFilePaths paths;
+
+    QAudioDecoder *audioFile;
+    double audioStartTime;
+    const short ADR = 100;
+
+    QSoundEffect *refVoiceReplay = 0;
+
+    QThread *scoreGenThread = 0;
+    ScoreGen *scoreGen = 0;
+
+
 public:
     VfbManager(QObject *parent = 0);
     ~VfbManager();
@@ -42,27 +58,21 @@ public:
     void getAudioSample();
     void playAudio();
 
-private:
-    QString refRootPath;
-    QString subRootPath;
-    RefSubFilePaths paths;
 
-    QAudioDecoder *audioFile;
-    double audioStartTime;
-    const short ADR = 100;
-
-    QThread *scoreGenThread = 0;
-    ScoreGen *scoreGen = 0;
 
 public slots:
     void readAudioBuffer();
     void computeScores();
     void saveScores(Scores scores, RefSubFilePaths info);
 
+private slots:
+    void handleRefVoiceReplayState();
+
 signals:
     void audioSampleSig(AudioSample sample, bool ref);
     void computeScoreSig(RefSubFilePaths paths);
     void scoreSig(Scores scores);
+    void voiceReplayFinished();
 
 };
 

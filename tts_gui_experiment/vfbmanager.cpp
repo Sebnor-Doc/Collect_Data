@@ -93,13 +93,30 @@ void VfbManager::playAudio()
     QFileInfo checkFile(paths.refAudio);
 
     if (checkFile.exists() && checkFile.isFile()) {
-        QSound::play(paths.refAudio); // Play sound
+
+        // Create an instance of QSoundEffect and connect its signal
+        if (!refVoiceReplay) {
+
+            refVoiceReplay = new QSoundEffect(this);
+            connect(refVoiceReplay, SIGNAL(playingChanged()), this, SLOT(handleRefVoiceReplayState()));
+        }
+
+        // Play sound
+        refVoiceReplay->setSource(QUrl::fromLocalFile(paths.refAudio));
+        refVoiceReplay->play();
     }
 
     else
     {
         QString errorMsg = "ERROR: Cannot found following audio file:\n" + paths.refAudio;
         qDebug() << errorMsg;
+    }
+}
+
+void VfbManager::handleRefVoiceReplayState()
+{
+    if (!refVoiceReplay->isPlaying()) {
+        emit voiceReplayFinished();
     }
 }
 
@@ -197,6 +214,8 @@ void VfbManager::saveScores(Scores scores, RefSubFilePaths info)
 
     outFile.close();
 }
+
+
 
 VfbManager::~VfbManager() {
 
