@@ -283,7 +283,7 @@ Sensors</string>
          <item>
           <widget class="QRadioButton" name="vfbSubNoVfbModeRadio">
            <property name="text">
-            <string>Subject - No VFB</string>
+            <string>Subject - No Score</string>
            </property>
           </widget>
          </item>

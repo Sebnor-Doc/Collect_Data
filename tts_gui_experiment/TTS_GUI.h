@@ -48,7 +48,7 @@ private:
     Localization loca;
 
     // Mode selection
-    enum Mode { NO_VFB, REF_VFB, SUB_VFB, SUB_NO_VFB };
+    enum Mode { NO_VFB, REF_VFB, SUB_VFB, SUB_NO_SCORE };
     Mode mode;
 
     VfbManager  *vfbManager = 0;

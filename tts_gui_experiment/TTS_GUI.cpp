@@ -84,7 +84,7 @@ void MainWindow::on_configButton_clicked()
     ui->configButton->setEnabled(false);
 
     // Start Visual Feedback thread
-    if (mode == SUB_VFB || mode == SUB_NO_VFB) {
+    if (mode == SUB_VFB || mode == SUB_NO_SCORE) {
 
         // Start Visual Feedback thread
         vfbManager = new VfbManager(this);
@@ -111,8 +111,9 @@ void MainWindow::on_configButton_clicked()
         patientDialog->setScorePlot(numTrials);
 
         bool showVfb = (mode == SUB_VFB);
-        ui->playRefButton->setEnabled(showVfb);
         patientDialog->showScores(showVfb);
+
+        ui->playRefButton->setEnabled(true);
     }
 
     // Set instance variables for folder/file paths
@@ -456,10 +457,6 @@ void MainWindow::beginTrial(){
 
     // Reset plots
     clearPlots();
-
-    if (mode == SUB_VFB) {
-        // TODO: Update filepaths
-    }
 }
 
 void MainWindow::stopTrial(){
@@ -534,7 +531,7 @@ void MainWindow::stopTrial(){
 
 
     // Manage the status of
-    if (mode == SUB_VFB || mode == SUB_NO_VFB) {
+    if (mode == SUB_VFB || mode == SUB_NO_SCORE) {
         ui->startStopTrialButton->setEnabled(false);
         ui->playRefButton->setEnabled(false);
     }
@@ -1013,8 +1010,8 @@ void MainWindow::on_vfbRefModeRadio_toggled(bool checked)
 void MainWindow::on_vfbSubNoVfbModeRadio_toggled(bool checked)
 {
     if (checked) {
-        showVfbWidgets(false);
-        mode = SUB_NO_VFB;
+        showVfbWidgets(true);
+        mode = SUB_NO_SCORE;
     }
 }
 
@@ -1124,7 +1121,7 @@ void MainWindow::setFilePath()
             experiment_utter + "_" + QString::number(currentTrial) + "/" + experiment_utter + "_" +
             QString::number(currentTrial);
 
-    if (mode == SUB_VFB) {
+    if (mode == SUB_VFB || mode == SUB_NO_SCORE) {
 
         RefSubFilePaths paths;
         QString refOutPath = QString("%1/%2/%3/%3_1/%3_1").arg(vfbManager->getRefRootPath()).arg(experiment_class).arg(experiment_utter);
