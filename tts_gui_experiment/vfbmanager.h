@@ -13,9 +13,14 @@ class ScoreGen : public QObject
 {
     Q_OBJECT
 
+private:
+    QString refEmfFilePath;
+    QString subEmfFilePath;
+
 public:
     ScoreGen(QObject *parent = 0);
     ~ScoreGen();
+    void setEmfFile(QString refEmf, QString subEmf);
 
 public slots:
     void startMatlabEngine();
@@ -50,6 +55,7 @@ public:
     ~VfbManager();
 
     void setRootPath(QString refRoot, QString subRoot);
+    void setEmfPath(QString subEmfFile);
     void setPaths(RefSubFilePaths paths);
 
     QString getRefRootPath();
@@ -59,14 +65,15 @@ public:
     void playAudio();
 
 
-
 public slots:
     void readAudioBuffer();
     void computeScores();
     void saveScores(Scores scores, RefSubFilePaths info);
 
+
 private slots:
     void handleRefVoiceReplayState();
+
 
 signals:
     void audioSampleSig(AudioSample sample, bool ref);

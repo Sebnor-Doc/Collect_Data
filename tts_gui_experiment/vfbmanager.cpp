@@ -4,6 +4,7 @@
 #include <QFileInfo>
 #include <QSound>
 #include <QCoreApplication>
+#include <QDir>
 
 /* Matlab Headers */
 #include "LocalizationScore.h"
@@ -35,6 +36,16 @@ void VfbManager::setRootPath(QString refRoot, QString subRoot)
 {
     refRootPath = refRoot;
     subRootPath = subRoot;
+}
+
+void VfbManager::setEmfPath(QString subEmfFile)
+{
+    // Find path to ref EMF file
+    QStringList nameFilter;
+    nameFilter << "EMF*.txt";
+    QString refEmfFile = QDir(refRootPath).entryList(nameFilter, QDir::Files, QDir::Time | QDir::Reversed).at(0);
+    refEmfFile = refRootPath + "/" + refEmfFile;
+    scoreGen->setEmfFile(refEmfFile, subEmfFile);
 }
 
 void VfbManager::setPaths(RefSubFilePaths paths)
@@ -244,6 +255,12 @@ void ScoreGen::startMatlabEngine()
                 .arg(mclInitApp).arg(locaInitSuccess).arg(audioInitSuccess).arg(magInitSuccess).arg(videoInitSuccess);
 }
 
+void ScoreGen::setEmfFile(QString refEmf, QString subEmf)
+{
+    refEmfFilePath = refEmf;
+    subEmfFilePath = subEmf;
+}
+
 void ScoreGen::computeScore(RefSubFilePaths paths) {
 
     QString trainModelQStr      = QString(QCoreApplication::applicationDirPath() + "/trainedModel.mat");
@@ -264,6 +281,9 @@ void ScoreGen::computeScore(RefSubFilePaths paths) {
     mwArray videoTrainingModelFile(trainModelQStr.toLatin1().constData());
     mwArray videoUniformLBP8File(uniformLBP8QStr.toLatin1().constData());
 
+    mwArray refEmfFile(refEmfFilePath.toLatin1().constData());
+    mwArray subEmfFile(subEmfFilePath.toLatin1().constData());
+
     // Perform score generation
     Scores scores;
 
@@ -276,11 +296,11 @@ void ScoreGen::computeScore(RefSubFilePaths paths) {
     scores.voice = audioScoreML(1,1);
 
     mwArray magScoreML;
-    magneticScoreMain(1, magScoreML, refMagFile, subMagFile, refAudioFile, subAudioFile);
+    magneticScoreMain(1, magScoreML, refMagFile, subMagFile, refAudioFile, subAudioFile, refEmfFile, subEmfFile);
     scores.mag = magScoreML(1,1);
 
     mwArray videoScoreML;
-    videoScoreMain(1, videoScoreML, videoTrainingModelFile, videoUniformLBP8File, refVideoFile, subVideoFile);
+    videoScoreMain(1, videoScoreML, videoTrainingModelFile, videoUniformLBP8File, refVideoFile, subVideoFile, refAudioFile, subAudioFile);
     scores.lips = videoScoreML(1,1);
 
     scores.avg = (scores.loca + scores.voice + scores.mag + scores.lips) / 4.0;
@@ -297,3 +317,5 @@ ScoreGen::~ScoreGen()
     mclTerminateApplication();
     qDebug() << "Matlab Runtime Ended";
 }
+
+

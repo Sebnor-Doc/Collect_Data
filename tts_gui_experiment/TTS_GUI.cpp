@@ -356,6 +356,10 @@ void MainWindow::on_measureEMFButton_clicked()
 
     // Record mag data for 1 second
     QTimer::singleShot(1000, this, SLOT(saveEMF()));
+
+    if (mode == SUB_VFB || mode == SUB_NO_SCORE) {
+        vfbManager->setEmfPath(emfFile);
+    }
 }
 
 void MainWindow::saveEMF() {
