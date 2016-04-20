@@ -1,6 +1,7 @@
 #include "VideoThread.h"
 #include <QCameraInfo>
 #include <QPixmap>
+#include <QFileInfo>
 #include <qmath.h>
 #include "common.h"
 
@@ -32,10 +33,38 @@ void VideoThread::saveVideo(bool saveVal)
 
     if (saveVal) {
         connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(saveFrame(Mat*)));
+        time.start();
     }
     else {
         disconnect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(saveFrame(Mat*)));
+
+        int videoDurationMs = time.elapsed();   // Get an estimate of the video duration
+
         video.release();
+
+        // Get a handle on the frames of original video
+        VideoCapture origVideo(origSubFilePath.toStdString());
+        double numFrames    = origVideo.get(CV_CAP_PROP_FRAME_COUNT);
+        double frameWidth   = origVideo.get(CV_CAP_PROP_FRAME_WIDTH);
+        double frameHeight  = origVideo.get(CV_CAP_PROP_FRAME_HEIGHT);
+
+        // Create an output video with corrected frame rate (fps)
+        VideoWriter newVideo;
+        int newFps = numFrames / (static_cast<double>(videoDurationMs) / 1000.0);
+        newVideo.open(subFilePath.toStdString(), fourCC, newFps, Size(frameWidth, frameHeight), true);
+
+        // Write frames from original to new output video
+        Mat frame;
+
+        while (origVideo.read(frame)) {
+            newVideo.write(frame);
+        }
+
+        newVideo.release();
+        origVideo.release();
+
+        // Delete original video
+        QFile::remove(origSubFilePath);
     }
 
     mutex.unlock();
@@ -94,7 +123,7 @@ void VideoThread::emitVideo(Mat *frame)
     cv::cvtColor(*frame, procFrame, CV_BGR2RGB);       // invert BGR to RGB
 
     // Lower frame resolution to reduce execution time
-    cv::resize(procFrame, procFrame, Size(frameWidth, frameHeight), 0, 0, INTER_AREA);
+    cv::resize(procFrame, procFrame, Size(FRAME_WIDTH, FRAME_HEIGHT), 0, 0, INTER_AREA);
 
     if (mode == RAW_FEED) {
         QImage videoImg = QImage((uchar*)procFrame.data, procFrame.cols, procFrame.rows, procFrame.step, QImage::Format_RGB888);
@@ -264,7 +293,7 @@ void VideoThread::updatePlaybackIdx(int idx) {
         replayVideo >> replayFrame;
 
         cv::cvtColor(replayFrame, replayFrame, CV_BGR2RGB);       // invert BGR to RGB
-        cv::resize(replayFrame, replayFrame, Size(frameWidth, frameHeight), 0, 0, INTER_AREA);
+        cv::resize(replayFrame, replayFrame, Size(FRAME_WIDTH, FRAME_HEIGHT), 0, 0, INTER_AREA);
         QImage replayImg     = QImage((uchar*)replayFrame.data, replayFrame.cols, replayFrame.rows, replayFrame.step, QImage::Format_RGB888);
         QPixmap replayPixmap = QPixmap::fromImage(replayImg);
 
@@ -274,8 +303,9 @@ void VideoThread::updatePlaybackIdx(int idx) {
 
 void VideoThread::setSubFilename(QString filename)
 {
-    subFilePath = filename + "_video.avi";
-    video.open(subFilePath.toStdString(), fourCC, frame_rate, Size(frame_width,frame_height), true);
+    origSubFilePath = filename + "_video_orig.avi";
+    subFilePath     = filename + "_video.avi";
+    video.open(origSubFilePath.toStdString(), fourCC, frame_rate, Size(frame_width,frame_height), true);
 }
 
 void VideoThread::setReplay(QString videoPath)

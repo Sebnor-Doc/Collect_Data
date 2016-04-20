@@ -8,6 +8,7 @@
 // General
 #include <QImage>
 #include <typedef.h>
+#include <QTime>
 
 // OpenCV
 #include<opencv2/core/core.hpp>
@@ -28,6 +29,7 @@ private:
     bool stopExec;
     Mat frame;
     QMutex mutex;
+
 
 public:
     VideoReadWorker();
@@ -50,8 +52,13 @@ private:
     // General
     VideoWriter video;
     VideoReadWorker readThread;
-    QString subFilePath;
+
     VideoMode mode;
+    QTime time;
+
+    // Output Files
+    QString subFilePath;
+    QString origSubFilePath;
 
     // Frame characteristics
     int frame_width;

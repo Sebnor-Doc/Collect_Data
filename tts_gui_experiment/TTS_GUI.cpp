@@ -623,8 +623,8 @@ void MainWindow::setVideo() {
 void MainWindow::setVideoPlayer() {
     /* Set the QCP curve where lips boundaries are identified */
 
-    QCPRange XaxisRange(0, frameWidth - 1);
-    QCPRange YaxisRange(0, frameHeight - 1);
+    QCPRange XaxisRange(0, FRAME_WIDTH - 1);
+    QCPRange YaxisRange(0, FRAME_HEIGHT - 1);
 
     QCPAxisRect *pixelAxis = ui->videoFeed->axisRect();
     lipsCurve = new QCPCurve(pixelAxis->axis(QCPAxis::atBottom), pixelAxis->axis(QCPAxis::atLeft));

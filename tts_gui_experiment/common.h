@@ -22,7 +22,7 @@ const int NUM_PTS = 100;
 const int AVG_N = 10;
 
 // Video
-const int frameWidth    = 320;
-const int frameHeight   = 240;
+const int FRAME_WIDTH    = 320;
+const int FRAME_HEIGHT   = 240;
 
 #endif // COMMON_H
