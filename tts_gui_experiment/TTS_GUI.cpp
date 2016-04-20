@@ -477,7 +477,7 @@ void MainWindow::stopTrial(){
     int numUtter =  ((QStringList*) utter.at(classIdx))->size();
     int numClass = classUtter.size();
 
-    if (mode != NO_VFB) {
+    if (mode == SUB_VFB || mode == SUB_NO_SCORE) {
 
         if( (trialIdx + 1) < numTrials ) {
             // Update to next trial
