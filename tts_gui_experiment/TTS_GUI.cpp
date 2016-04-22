@@ -23,6 +23,18 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     ui->setupUi(this);
     this->setWindowState(Qt::WindowMaximized);
 
+    // Set space bar to Start/Stop button
+    QShortcut *spaceBar = new QShortcut(this);
+    spaceBar->setKey(QKeySequence(Qt::Key_Space));
+    connect(spaceBar, SIGNAL(activated()), ui->startStopTrialButton, SLOT(toggle()));
+    connect(spaceBar, SIGNAL(activatedAmbiguously()), ui->startStopTrialButton, SLOT(toggle()));
+
+    // Set "R" to Play Reference button
+    QShortcut *r_stroke = new QShortcut(this);
+    r_stroke->setKey(QKeySequence(Qt::Key_R));
+    connect(r_stroke, SIGNAL(activated()), ui->playRefButton, SLOT(click()));
+
+
     loadConfig();
 
     // Disable buttons to enforce proper config sequence
@@ -758,8 +770,8 @@ void MainWindow::setWaveform(){
     waveform.keysRange.lower = 0.0;
     waveform.keysRange.upper = 10.0;
 
-    waveform.valuesRange.lower = -0.5;
-    waveform.valuesRange.upper = 0.5;
+    waveform.valuesRange.lower = -0.8;
+    waveform.valuesRange.upper = 0.8;
 
     axis->setupFullAxesBox(true);
     axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));

@@ -371,9 +371,6 @@ Sensors</string>
           <property name="text">
            <string>Measure EMF</string>
           </property>
-          <property name="shortcut">
-           <string>Return</string>
-          </property>
          </widget>
         </item>
        </layout>
@@ -403,6 +400,12 @@ Sensors</string>
            <string>Space</string>
           </property>
           <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="autoDefault">
+           <bool>true</bool>
+          </property>
+          <property name="default">
            <bool>true</bool>
           </property>
          </widget>
@@ -440,6 +443,9 @@ Sensors</string>
          <font>
           <pointsize>14</pointsize>
          </font>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::WheelFocus</enum>
         </property>
        </widget>
       </item>
