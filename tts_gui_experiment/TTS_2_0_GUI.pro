@@ -76,6 +76,9 @@ LIBS        += -LC:/dev/Boost/boost_1_60_0/stage/Lib_static_msvc12_64bit
 # OPEN CV
 INCLUDEPATH += "C:/dev/OpenCV/OpenCV_3_0/opencv/build/include"
 LIBS        += -L"C:/dev/OpenCV/OpenCV_3_0/Build_Shared_64bit/lib/Release" \
+                -lopencv_calib3d300     \
+                -lopencv_core300        \
+                -lopencv_features2d300  \
                 -lopencv_flann300       \
                 -lopencv_hal300         \
                 -lopencv_highgui300     \
@@ -89,10 +92,10 @@ LIBS        += -L"C:/dev/OpenCV/OpenCV_3_0/Build_Shared_64bit/lib/Release" \
                 -lopencv_superres300    \
                 -lopencv_ts300          \
                 -lopencv_video300       \
+                -lopencv_video300       \
                 -lopencv_videoio300     \
-                -lopencv_videostab300   \
-                -lopencv_calib3d300     \
-                -lopencv_core300        \
-                -lopencv_features2d300
+                -lopencv_videostab300
+
+
 
 
