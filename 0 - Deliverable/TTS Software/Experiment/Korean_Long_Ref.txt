@@ -1,0 +1,95 @@
+﻿%% FORMAT - Pronunciation; Word in Korean; Meaning
+
+Iterations: 5
+
+class: Months
+ilwol ; 일월; January 
+iwol ; 이월; February 
+samwol ; 삼월; March
+sawol ; 사월; April
+owol ; 오월; May 
+yuwol ; 유월; June
+chilwol ; 칠월; July 
+palwol ; 팔월 ; August 
+guwol ; 구월; September 
+siwol ; 시월 ; October
+sibilwol ; 십일월 ; November
+sibiwol ; 십이월 ; December 
+
+class: Days
+ilyoil; 일요일 ; Sunday
+wolyoil; 월요일 ; Monday 
+hwayoil; 화요일 ; Tuesday
+suyoil; 수요일 ; Wednesday 
+mog-yoil; 목요일 ; Thursday
+geumyoil; 금요일 ; Friday 
+toyoil; 토요일 ; Saturday 
+
+
+class: Numbers
+hana; 하나 ; 1
+dul; 둘 ; 2
+set; 셋 ; 3
+net; 넷 ; 4 
+daseot; 다섯 ; 5
+yeoseot; 여섯 ; 6 
+ilgob; 일곱 ; 7
+yeodeol; 여덟 ; 8
+ahop; 아홉 ; 9 
+yeol; 열 ; 10
+
+
+class: Words
+hangugeo; 한국어 ; Korean 
+junggugeo; 중국어 ; Chinese 
+ilboneo; 일본어 ; Japanese 
+annyeong hasimnikka ; 안녕 하십니까 ; Hello (most formal)
+annyeonghaseyo; 안녕하세요; Hello (formal)
+annyeong; 안녕; Hello (informal)
+yeoboseyo; 여보세요; Hello (on the phone)
+butakamnida; 부탁합니다; Please
+ye-ne; 예/네; Yes
+aniyo;아니요; No
+annyeonhi gaseyo; 안녕히 가세요; Goodbye. (to person leaving) 
+annyeonghi gyeseyo; 안녕히 계세요; Goodbye (to person staying)
+dowajusyo; 도와주십시오!; Help! 
+mueot; 무엇?; What?
+mwo; 뭐? ; What? (more common)
+eodi; 어디?; Where?
+nugu; 누구?; Who? 
+eonje; 언제?; When? 
+museun; 무슨?; Which? 
+
+
+class: Phrases
+ne, jogeummanyo; 네, 조금만요; Yes, a little.
+josimhasipsio; 조심하십시오!; Look out!
+jo-eun achimimnida; 좋은 아침입니다; Good morning
+jo-eun jeonyeogimnida; 좋은 저녁입니다; Good evening
+jo-eun bamimnida; 좋은 밤입니다; Good night
+annyeonghi jumusipsio; 안녕히 주무십시오; Good night (to sleep)
+ihaega ankamnida; 이해가 안갑니다; I don't understand. 
+moreugesseumnida; 모르겠습니다; I don't understand. (more common) 
+algesseumnida; 알겠습니다; I understand. 
+hwajangsir-i eodi-e isseumnikka;  화장실이 어디에 있습니까; Where is the toilet?
+eolma; 얼마?; How much?
+eunggeup sanghwang-imnida; 응급 상황입니다; It's an emergency
+gireul ireosseumnida; 길을 잃었습니다; I'm lost
+gabang-eul ireosseumnida; 가방을 잃었습니다; I lost my bag
+jikab-eul ireosseumnida; 지갑을 잃었습니다; I lost my wallet. 
+apeumnida; 아픕니다; I'm sick. 
+sangcheo-reul ibeosseumnida; 상처를 입었습니다; I've been injured
+uisa-ga pilyohamnida; 의사가 필요합니다; I need a doctor
+dangshin-ui jeonhwagi-reul sayonghaedo doegesseumnikka; 당신의 전화기를 사용해도 되겠습니까?; Can I use your phone? 
+eotteoke jinaesimnikka; 어떻게 지내십니까? ; How are you? 
+eotteohge jinaeseyo; 어떻게 지내세요? ; How are you?
+jal jinaemnida, gamsahamnida; 잘 지냅니다, 감사합니다; Fine, thank you. 
+seongham-i eotteoke doeseyo; 성함이 어떻게 되세요?; What is your name?
+mannaseo bangapseumnida; 만나서 반갑습니다; Nice to meet you. 
+gamsahamnida; 감사합니다 ; Thank you. 
+cheonman-imnida; 천만입니다; You're welcome. 
+sillyehamnida; 실례합니다; Excuse me.
+joesonghamnida; 죄송합니다; I'm sorry. 
+yeogi-e yeongeo-reul hasi-neun bun gyesimnikka; 여기에 영어를 하시는 분 계십니까?; Is there someone here who speaks English? 
+cheoncheonhi malhae jusipsio; 천천히 말해 주십시오; Please speak slowly. 
+dasi hanbeon malhae jusipsio; 다시 한번 말해 주십시오; Please say it again. 
