@@ -124,6 +124,7 @@ private slots:
 
     void on_configButton_clicked();
     void on_measureEMFButton_clicked();
+    void on_reuseEMFButton_clicked();
     void on_startStopTrialButton_toggled(bool checked);
     void on_classBox_currentIndexChanged(int index);
     void on_utteranceBox_currentIndexChanged(int index);
@@ -144,6 +145,7 @@ private slots:
     void videoManager();
     void scoreGenerated();
 
+
 private:
     void loadConfig();
     void loadCalibration(QString calibFilename);
@@ -158,6 +160,7 @@ private:
     void clearPlots();
     void setWaveform();
     void setFilePath();
+    void updateButtonsAfterEMF();
     QVector<double> parseVector(QString myString, bool matrix);
     QString parseUtter(QString rawUtter);
     void showVfbWidgets(bool isVfbSub);
