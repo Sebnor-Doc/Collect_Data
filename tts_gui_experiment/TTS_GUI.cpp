@@ -93,6 +93,7 @@ void MainWindow::on_configButton_clicked()
 
     // Set state of buttons
     ui->measureEMFButton->setEnabled(true);
+    ui->reuseEMFButton->setEnabled(true);
     ui->configButton->setEnabled(false);
 
     // Start Visual Feedback thread
@@ -429,11 +430,59 @@ void MainWindow::saveEMF() {
     avgEmfFile.close();
 
     // Update buttons status
-    ui->measureEMFButton->setText("EMF Measured!");
-    ui->measureEMFButton->setEnabled(false);
-    ui->startStopTrialButton->setEnabled(true);
+    updateButtonsAfterEMF();
+
 }
 
+void MainWindow::on_reuseEMFButton_clicked()
+{
+    emfFile = QFileDialog::getOpenFileName(this, "Select EMF file", experiment_root, "Text files (*.txt)");
+
+    QFile emfFileHandle(emfFile);
+    QTextStream in(&emfFileHandle);
+
+    if (emfFileHandle.open(QIODevice::ReadOnly | QIODevice::Text)) {
+
+        for (int i = 0; i < NUM_OF_SENSORS; i++) {
+
+            QString line = in.readLine();
+
+            QStringList emfVals = line.split(" ");
+
+            QVector<double> emfSensor(3);
+            emfSensor[0] = emfVals[0].toDouble();
+            emfSensor[1] = emfVals[1].toDouble();
+            emfSensor[2] = emfVals[2].toDouble();
+            qDebug() << QString("Sensor %1: %2  ,  %3  ,  %4").arg(i).arg(emfSensor[0]).arg(emfSensor[1]).arg(emfSensor[2]);
+            sensors[i]->setEMF(emfSensor);
+        }
+    }
+
+    else {
+
+        QMessageBox msgBox;
+        msgBox.setText("The EMF file could not be read. Please select another file.");
+        msgBox.exec();
+
+        emfFileHandle.close();
+        return;
+    }
+
+    emfFileHandle.close();
+
+    // Update buttons status
+    updateButtonsAfterEMF();
+}
+
+void MainWindow::updateButtonsAfterEMF() {
+    // Update buttons status
+    ui->measureEMFButton->setText("EMF Measured!");
+
+    ui->measureEMFButton->setEnabled(false);
+    ui->reuseEMFButton->setEnabled(false);
+
+    ui->startStopTrialButton->setEnabled(true);
+}
 
 /* Data collection */
 void MainWindow::on_startStopTrialButton_toggled(bool checked)
@@ -1289,7 +1338,3 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
-
-
-
-
