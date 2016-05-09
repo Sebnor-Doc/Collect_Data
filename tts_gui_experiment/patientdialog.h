@@ -28,11 +28,16 @@ private:
     QVector<QCPBars*> lipsBars;
     QVector<QCPBars*> avgScoreBars;
     QCPColorGradient colorGrad;
-    int currentTrial;
+    int currentTrial = 1;
+    int nextTrial    = 1;
+
+    // Reference playing
+    QVector<QLabel*> playRefLabels;
 
 public:
     void setScorePlot(int numTrials);
     void setCurrentTrial(int trial);
+    void setNextTrial(int nextTrial);
     void showScores(bool show);
 
 public slots:

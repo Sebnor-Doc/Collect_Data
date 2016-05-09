@@ -1158,6 +1158,10 @@ void MainWindow::on_trialBox_currentIndexChanged(int index)
     }
 
     ui->utteranceEdit->setStyleSheet("color: black");
+
+    if (patientDialog) {
+        patientDialog->setNextTrial(index + 1);
+    }
 }
 
 void MainWindow::on_classBox_currentIndexChanged(int index)

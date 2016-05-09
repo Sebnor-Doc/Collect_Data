@@ -167,10 +167,13 @@
      <item>
       <layout class="QHBoxLayout" name="score_plot_layout" stretch="1,2">
        <item>
-        <layout class="QVBoxLayout" name="video_layout" stretch="5,2">
+        <layout class="QVBoxLayout" name="video_layout" stretch="1,5,2">
          <property name="sizeConstraint">
           <enum>QLayout::SetMinimumSize</enum>
          </property>
+         <item>
+          <layout class="QHBoxLayout" name="play_ref_layout"/>
+         </item>
          <item>
           <widget class="QLabel" name="videoFeed">
            <property name="sizePolicy">

@@ -1,5 +1,6 @@
 #include "patientdialog.h"
 #include "ui_patientdialog.h"
+#include <QLabel>
 
 PatientDialog::PatientDialog(QWidget *parent) : QDialog(parent), ui(new Ui::PatientDialog)
 {
@@ -9,6 +10,23 @@ PatientDialog::PatientDialog(QWidget *parent) : QDialog(parent), ui(new Ui::Pati
     QSizePolicy sp_retain = ui->scorePlot->sizePolicy();
     sp_retain.setRetainSizeWhenHidden(true);
     ui->scorePlot->setSizePolicy(sp_retain);
+
+    // Add labels for reference
+    for (int i = 0; i < 8; i++) {
+        QLabel *label = new QLabel(this);
+
+        if(i == 0 || i == 1 || i == 3) {
+            label->setText("Ref");
+        }
+        else {
+            label->setText("X");
+        }
+
+        label->setFont(QFont("Times", 10, QFont::Light));
+
+        ui->play_ref_layout->addWidget(label, 1);
+        playRefLabels.append(label);
+    }
 }
 
 void PatientDialog::updateUtter(QString utter)
@@ -179,6 +197,19 @@ void PatientDialog::setCurrentTrial(int trial)
 
     if (currentTrial == 1) {
         clearScorePlot();
+    }
+}
+
+void PatientDialog::setNextTrial(int nextTrial)
+{
+    for (int i = 0; i < playRefLabels.size(); i++) {
+
+        if (i == (nextTrial-1)) {
+             playRefLabels[i]->setFont(QFont("Times", 18, QFont::Bold));
+        }
+        else {
+            playRefLabels[i]->setFont(QFont("Times", 10, QFont::Light));
+        }
     }
 }
 
