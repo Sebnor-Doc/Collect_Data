@@ -114,6 +114,8 @@ void MainWindow::on_configButton_clicked()
         connect(vfbManager, SIGNAL(scoreSig(Scores)), this, SLOT(scoreGenerated()));
         connect(this, SIGNAL(save(bool)), patientDialog, SLOT(recording(bool)));
         connect(vfbManager, SIGNAL(voiceReplayFinished()), this, SLOT(playRefFinished()));
+        connect(&voice, SIGNAL(audioSample(AudioSample, bool)), patientDialog, SLOT(updateWaveform(AudioSample,bool)));
+        connect(vfbManager, SIGNAL(audioSampleSig(AudioSample, bool)), patientDialog, SLOT(updateWaveform(AudioSample,bool)));
 
         Qt::WindowFlags flags = patientDialog->windowFlags();
         flags |= Qt::WindowMaximizeButtonHint;
@@ -1116,6 +1118,7 @@ void MainWindow::on_playRefButton_clicked()
     // Update audio waveform
     vfbManager->getAudioSample();
     connect(vfbManager, SIGNAL(audioSampleSig(AudioSample, bool)), this, SLOT(updateWaveform(AudioSample, bool)));
+
 
     // Update video feed
     connect(&video, SIGNAL(processedImage(QPixmap)), patientDialog, SLOT(updateVideo(QPixmap)));

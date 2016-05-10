@@ -11,6 +11,8 @@ PatientDialog::PatientDialog(QWidget *parent) : QDialog(parent), ui(new Ui::Pati
     sp_retain.setRetainSizeWhenHidden(true);
     ui->scorePlot->setSizePolicy(sp_retain);
 
+    ui->bioFeedWidget->setVisible(false);
+
     // Add labels for reference
     for (int i = 0; i < 8; i++) {
         QLabel *label = new QLabel(this);
@@ -27,6 +29,8 @@ PatientDialog::PatientDialog(QWidget *parent) : QDialog(parent), ui(new Ui::Pati
         ui->play_ref_layout->addWidget(label, 1);
         playRefLabels.append(label);
     }
+
+    setAudioWaveform();
 }
 
 void PatientDialog::updateUtter(QString utter)
@@ -198,6 +202,8 @@ void PatientDialog::setCurrentTrial(int trial)
     if (currentTrial == 1) {
         clearScorePlot();
     }
+
+    clearAudioWaveform();
 }
 
 void PatientDialog::setNextTrial(int nextTrial)
@@ -243,9 +249,72 @@ void PatientDialog::clearScorePlot()
 }
 
 
+/* Audio Waveform */
+void PatientDialog::setAudioWaveform()
+{
+    ui->audioPlot->plotLayout()->clear();
+
+    QCPAxisRect *axis = new QCPAxisRect(ui->audioPlot);
+
+    waveform.keysRange.lower = 0.0;
+    waveform.keysRange.upper = 10.0;
+
+    waveform.valuesRange.lower = -0.8;
+    waveform.valuesRange.upper = 0.8;
+
+    axis->setupFullAxesBox(true);
+    axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
+    axis->axis(QCPAxis::atTop)->setLabel("Voice Audio Waveform");
+    axis->axis(QCPAxis::atBottom)->setLabelColor(QColor(Qt::blue));
+    axis->axis(QCPAxis::atBottom)->setLabel("Time (s)");
+    axis->axis(QCPAxis::atLeft)->setLabelColor(QColor(Qt::blue));
+    axis->axis(QCPAxis::atLeft)->setLabel("Normalized Amplitude");
+    axis->axis(QCPAxis::atLeft)->setRange(waveform.valuesRange);
+    axis->axis(QCPAxis::atBottom)->setRange(waveform.keysRange);
+
+    waveform.graph      = ui->audioPlot->addGraph(axis->axis(QCPAxis::atBottom), axis->axis(QCPAxis::atLeft));
+    waveform.refGraph   = ui->audioPlot->addGraph(axis->axis(QCPAxis::atBottom), axis->axis(QCPAxis::atLeft));
+
+    waveform.graph->setPen(QPen(Qt::red));
+    waveform.refGraph->setPen(QPen(Qt::darkGreen));
+
+    ui->audioPlot->plotLayout()->addElement(0,0, axis);
+}
+
+void PatientDialog::updateWaveform(AudioSample sample, bool ref)
+{
+    QVector<double> time = sample.keys().toVector();
+    QVector<double> data = sample.values().toVector();
+
+    QCPGraph *graph = ref ? waveform.refGraph :  waveform.graph;
+    graph->addData(time, data);
+    graph->rescaleKeyAxis(true);
+
+    ui->audioPlot->replot();
+}
+
+void PatientDialog::clearAudioWaveform()
+{
+    // Clear Waveform
+    QVector<QCPGraph*> waveGraphs;
+    waveGraphs.append(waveform.graph);
+    waveGraphs.append(waveform.refGraph);
+
+    foreach (QCPGraph* graph, waveGraphs) {
+        graph->clearData();
+        graph->keyAxis()->setRange(waveform.keysRange);
+    }
+}
+
+
 /*  Cleaning */
 PatientDialog::~PatientDialog()
 {
     delete ui;
 }
 
+
+void PatientDialog::on_bioFeedCheckBox_toggled(bool checked)
+{
+    ui->bioFeedWidget->setVisible(checked);
+}

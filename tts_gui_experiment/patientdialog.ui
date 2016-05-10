@@ -163,51 +163,73 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="bottom_layout" stretch="2">
+    <layout class="QHBoxLayout" name="bottom_layout" stretch="1,1,1">
      <item>
-      <layout class="QHBoxLayout" name="score_plot_layout" stretch="1,2">
+      <layout class="QVBoxLayout" name="video_layout" stretch="1,5,2,0">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetMinimumSize</enum>
+       </property>
        <item>
-        <layout class="QVBoxLayout" name="video_layout" stretch="1,5,2">
-         <property name="sizeConstraint">
-          <enum>QLayout::SetMinimumSize</enum>
-         </property>
-         <item>
-          <layout class="QHBoxLayout" name="play_ref_layout"/>
-         </item>
-         <item>
-          <widget class="QLabel" name="videoFeed">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="autoFillBackground">
-            <bool>false</bool>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">Background-color: #000;</string>
-           </property>
-           <property name="text">
-            <string>TextLabel</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="verticalSpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
+        <layout class="QHBoxLayout" name="play_ref_layout"/>
        </item>
+       <item>
+        <widget class="QLabel" name="videoFeed">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="autoFillBackground">
+          <bool>false</bool>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">Background-color: #000;</string>
+         </property>
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="bioFeedCheckBox">
+         <property name="text">
+          <string>Bio-feedback </string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QWidget" name="bioFeedWidget" native="true">
+       <property name="autoFillBackground">
+        <bool>true</bool>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="QCustomPlot" name="audioPlot" native="true"/>
+        </item>
+        <item>
+         <widget class="QCustomPlot" name="tonguePlot" native="true"/>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="score_plot_layout" stretch="1">
        <item>
         <widget class="QCustomPlot" name="scorePlot" native="true">
          <property name="sizePolicy">
