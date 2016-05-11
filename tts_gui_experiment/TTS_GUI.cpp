@@ -116,6 +116,9 @@ void MainWindow::on_configButton_clicked()
         connect(vfbManager, SIGNAL(voiceReplayFinished()), this, SLOT(playRefFinished()));
         connect(&voice, SIGNAL(audioSample(AudioSample, bool)), patientDialog, SLOT(updateWaveform(AudioSample,bool)));
         connect(vfbManager, SIGNAL(audioSampleSig(AudioSample, bool)), patientDialog, SLOT(updateWaveform(AudioSample,bool)));
+        connect(&loca, SIGNAL(packetLocalized(LocaData)), patientDialog, SLOT(updateTongue(LocaData)));
+        connect(&video, SIGNAL(processedImage(QPixmap)), patientDialog, SLOT(updateVideo(QPixmap)));
+        connect(this, SIGNAL(videoMode(VideoMode)), patientDialog, SLOT(updateVideoMode(VideoMode)));
 
         Qt::WindowFlags flags = patientDialog->windowFlags();
         flags |= Qt::WindowMaximizeButtonHint;
@@ -1022,6 +1025,10 @@ void MainWindow::updateRefTongueTraj()
 {
     QVector<LocaData> refLocaData = vfbManager->getRefLocaData();
 
+    if (mode == SUB_VFB || mode == SUB_NO_SCORE) {
+        patientDialog->updateRefTongue(refLocaData);
+    }
+
     // Add point to localization graphs
     foreach (LocaData data, refLocaData ) {
 
@@ -1121,14 +1128,13 @@ void MainWindow::on_playRefButton_clicked()
 
 
     // Update video feed
-    connect(&video, SIGNAL(processedImage(QPixmap)), patientDialog, SLOT(updateVideo(QPixmap)));
     video.setReplay(vfbManager->getPaths().refLips);
     emit videoMode(REPLAY_REF);
 }
 
 void MainWindow::playRefFinished()
 {
-    disconnect(&video, SIGNAL(processedImage(QPixmap)), patientDialog, SLOT(updateVideo(QPixmap)));
+    emit videoMode(RAW_FEED);
     ui->playRefButton->setEnabled(true);
     ui->startStopTrialButton->setEnabled(true);
 }

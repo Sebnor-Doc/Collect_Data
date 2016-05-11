@@ -31,6 +31,7 @@ PatientDialog::PatientDialog(QWidget *parent) : QDialog(parent), ui(new Ui::Pati
     }
 
     setAudioWaveform();
+    setTonguePlot();
 }
 
 void PatientDialog::updateUtter(QString utter)
@@ -48,11 +49,6 @@ void PatientDialog::updateUtter(QString utter)
     }
 }
 
-void PatientDialog::updateVideo(QPixmap image)
-{
-    QPixmap scaledImg = image.scaled(ui->videoFeed->width(), ui->videoFeed->height());
-    ui->videoFeed->setPixmap(scaledImg);
-}
 
 void PatientDialog::recording(bool isRecording)
 {
@@ -66,6 +62,22 @@ void PatientDialog::recording(bool isRecording)
     }
 
     ui->utterEdit->setStyleSheet(styleSheet);
+}
+
+/* Visual Feedback as Scores */
+void PatientDialog::updateVideo(QPixmap image)
+{
+    if (!ui->bioFeedCheckBox->isChecked() && videoMode != REPLAY_REF) {
+        return;
+    }
+
+    QPixmap scaledImg = image.scaled(ui->videoFeed->width(), ui->videoFeed->height());
+    ui->videoFeed->setPixmap(scaledImg);
+}
+
+void PatientDialog::updateVideoMode(VideoMode videoMode)
+{
+    this->videoMode = videoMode;
 }
 
 
@@ -204,6 +216,7 @@ void PatientDialog::setCurrentTrial(int trial)
     }
 
     clearAudioWaveform();
+    clearTonguePlot();
 }
 
 void PatientDialog::setNextTrial(int nextTrial)
@@ -306,6 +319,193 @@ void PatientDialog::clearAudioWaveform()
     }
 }
 
+/*  Tongue Tracking */
+void PatientDialog::setTonguePlot()
+{
+    ui->tonguePlot->plotLayout()->clear();
+    ui->tonguePlot->setInteraction(QCP::iRangeDrag, true);
+    ui->tonguePlot->setInteraction(QCP::iRangeZoom, true);
+
+    // Set plots
+    for (int i = 0; i < 3; i++) {
+
+        // Setup Localization plane axis
+        locaTrajPlots[i].axis = new QCPAxisRect(ui->tonguePlot);
+        locaTrajPlots[i].axis->setupFullAxesBox(true);
+
+        // Setup Localization vs. Time (dynamic) axis
+        locaTimePlots[i].axis = new QCPAxisRect(ui->tonguePlot);
+        locaTimePlots[i].axis->setupFullAxesBox(true);
+
+        // Add 2 vertically stacked plots (top = plane, bottom = dynamic)
+        ui->tonguePlot->plotLayout()->addElement(0, i, locaTrajPlots[i].axis);
+        ui->tonguePlot->plotLayout()->addElement(1, i, locaTimePlots[i].axis);
+
+        // Create and add Localization graphs (trajectory + reference + leading dot)
+        locaTrajPlots[i].graph = new QCPCurve(locaTrajPlots[i].axis->axis(QCPAxis::atBottom),
+                                              locaTrajPlots[i].axis->axis(QCPAxis::atLeft));
+
+        locaTrajPlots[i].refCurve = new QCPCurve(locaTrajPlots[i].axis->axis(QCPAxis::atBottom),
+                                                 locaTrajPlots[i].axis->axis(QCPAxis::atLeft));
+
+        ui->tonguePlot->addPlottable(locaTrajPlots[i].graph);
+        ui->tonguePlot->addPlottable(locaTrajPlots[i].refCurve);
+
+        locaTrajPlots[i].leadDot = ui->tonguePlot->addGraph(locaTrajPlots[i].axis->axis(QCPAxis::atBottom),
+                                                            locaTrajPlots[i].axis->axis(QCPAxis::atLeft));
+
+        // Create and add Localization vs. Time graph
+        locaTimePlots[i].graph = ui->tonguePlot->addGraph(locaTimePlots[i].axis->axis(QCPAxis::atBottom),
+                                                          locaTimePlots[i].axis->axis(QCPAxis::atLeft));
+
+        locaTimePlots[i].refGraph = ui->tonguePlot->addGraph(locaTimePlots[i].axis->axis(QCPAxis::atBottom),
+                                                             locaTimePlots[i].axis->axis(QCPAxis::atLeft));
+    }
+
+    // Set trajectory plots attributes
+    locaTrajPlots[0].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
+    locaTrajPlots[0].graph->setPen(QPen(Qt::red));
+    locaTrajPlots[0].refCurve->setPen(QPen(Qt::darkGreen));
+    locaTrajPlots[0].leadDot->setPen(QPen(Qt::black));
+    locaTrajPlots[0].leadDot->setLineStyle(QCPGraph::lsNone);
+    locaTrajPlots[0].leadDot->setScatterStyle(QCPScatterStyle::ssDisc);
+    locaTrajPlots[0].axis->axis(QCPAxis::atTop)->setLabel("X-Y");
+    locaTrajPlots[0].axis->axis(QCPAxis::atBottom)->setLabel("X");
+    locaTrajPlots[0].axis->axis(QCPAxis::atLeft)->setLabel("Y");
+    locaTrajPlots[0].axis->axis(QCPAxis::atBottom)->setRange(-5,5);
+    locaTrajPlots[0].axis->axis(QCPAxis::atLeft)->setRange(0,10);
+
+    locaTrajPlots[1].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::darkGreen));
+    locaTrajPlots[1].graph->setPen(QPen(Qt::red));
+    locaTrajPlots[1].refCurve->setPen(QPen(Qt::darkGreen));
+    locaTrajPlots[1].leadDot->setPen(QPen(Qt::black));
+    locaTrajPlots[1].leadDot->setLineStyle(QCPGraph::lsNone);
+    locaTrajPlots[1].leadDot->setScatterStyle(QCPScatterStyle::ssDisc);
+    locaTrajPlots[1].axis->axis(QCPAxis::atTop)->setLabel("X-Z");
+    locaTrajPlots[1].axis->axis(QCPAxis::atBottom)->setLabel("X");
+    locaTrajPlots[1].axis->axis(QCPAxis::atLeft)->setLabel("Z");
+    locaTrajPlots[1].axis->axis(QCPAxis::atBottom)->setRange(-5,5);
+    locaTrajPlots[1].axis->axis(QCPAxis::atLeft)->setRange(-5,0);
+
+    locaTrajPlots[2].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::red));
+    locaTrajPlots[2].graph->setPen(QPen(Qt::red));
+    locaTrajPlots[2].refCurve->setPen(QPen(Qt::darkGreen));
+    locaTrajPlots[2].leadDot->setPen(QPen(Qt::black));
+    locaTrajPlots[2].leadDot->setLineStyle(QCPGraph::lsNone);
+    locaTrajPlots[2].leadDot->setScatterStyle(QCPScatterStyle::ssDisc);
+    locaTrajPlots[2].axis->axis(QCPAxis::atTop)->setLabel("Y-Z");
+    locaTrajPlots[2].axis->axis(QCPAxis::atBottom)->setLabel("Y");
+    locaTrajPlots[2].axis->axis(QCPAxis::atLeft)->setLabel("Z");
+    locaTrajPlots[2].axis->axis(QCPAxis::atBottom)->setRange(0,10);
+    locaTrajPlots[2].axis->axis(QCPAxis::atLeft)->setRange(-5,0);
+
+    // Set Time series attributes
+    locaTimePlots[0].timeRange = new QCPRange(0,5);
+    locaTimePlots[0].YRange = new QCPRange(-5,5);
+
+    locaTimePlots[0].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
+    locaTimePlots[0].graph->setPen(QPen(Qt::red));
+    locaTimePlots[0].refGraph->setPen(QPen(Qt::darkGreen));
+    locaTimePlots[0].axis->axis(QCPAxis::atTop)->setLabel("X (time)");
+    locaTimePlots[0].axis->axis(QCPAxis::atBottom)->setLabel("time(s)");
+    locaTimePlots[0].axis->axis(QCPAxis::atBottom)->setRange(*locaTimePlots[0].timeRange);
+    locaTimePlots[0].axis->axis(QCPAxis::atLeft)->setLabel("X(cm)");
+    locaTimePlots[0].axis->axis(QCPAxis::atLeft)->setRange(*locaTimePlots[0].YRange);
+
+    locaTimePlots[1].timeRange = new QCPRange(0,5);
+    locaTimePlots[1].YRange = new QCPRange(0,10);
+    locaTimePlots[1].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
+    locaTimePlots[1].graph->setPen(QPen(Qt::red));
+    locaTimePlots[1].refGraph->setPen(QPen(Qt::darkGreen));
+    locaTimePlots[1].axis->axis(QCPAxis::atTop)->setLabel("Y (time)");
+    locaTimePlots[1].axis->axis(QCPAxis::atBottom)->setLabel("time(s)");
+    locaTimePlots[1].axis->axis(QCPAxis::atBottom)->setRange(*locaTimePlots[1].timeRange);
+    locaTimePlots[1].axis->axis(QCPAxis::atLeft)->setLabel("Y(cm)");
+    locaTimePlots[1].axis->axis(QCPAxis::atLeft)->setRange(*locaTimePlots[1].YRange);
+
+    locaTimePlots[2].timeRange = new QCPRange(0,5);
+    locaTimePlots[2].YRange = new QCPRange(-5,0);
+    locaTimePlots[2].axis->axis(QCPAxis::atTop)->setLabelColor(QColor(Qt::blue));
+    locaTimePlots[2].graph->setPen(QPen(Qt::red));
+    locaTimePlots[2].refGraph->setPen(QPen(Qt::darkGreen));
+    locaTimePlots[2].axis->axis(QCPAxis::atTop)->setLabel("Z (time)");
+    locaTimePlots[2].axis->axis(QCPAxis::atBottom)->setLabel("time(s)");
+    locaTimePlots[2].axis->axis(QCPAxis::atBottom)->setRange(*locaTimePlots[2].timeRange);
+    locaTimePlots[2].axis->axis(QCPAxis::atLeft)->setLabel("Z(cm)");
+    locaTimePlots[2].axis->axis(QCPAxis::atLeft)->setRange(*locaTimePlots[2].YRange);
+}
+
+void PatientDialog::updateTongue(LocaData locaData)
+{
+
+    // Convert data
+    double timeMs = locaData.time;
+    double timeSec = locaData.time / 1000.0;
+    double x = locaData.x * 100.0;
+    double y = locaData.y * 100.0;
+    double z = locaData.z * 100.0;
+
+    // Add point to localization graphs
+    locaTrajPlots[0].graph->addData(timeMs, x, y);
+    locaTrajPlots[1].graph->addData(timeMs, x, z);
+    locaTrajPlots[2].graph->addData(timeMs, y, z);
+
+    // Set leading dots
+    locaTrajPlots[0].leadDot->clearData();
+    locaTrajPlots[1].leadDot->clearData();
+    locaTrajPlots[2].leadDot->clearData();
+    locaTrajPlots[0].leadDot->addData(x, y);
+    locaTrajPlots[1].leadDot->addData(x, z);
+    locaTrajPlots[2].leadDot->addData(y, z);
+
+    // Add point to time series
+    locaTimePlots[0].graph->addData(timeSec, x);
+    locaTimePlots[1].graph->addData(timeSec, y);
+    locaTimePlots[2].graph->addData(timeSec, z);
+
+    // remove data of lines that's outside visible range:
+    double lowerBound = timeSec - 4;
+
+    for (int i = 0; i < 3; i++) {
+
+        if (lowerBound > 0) {
+            locaTimePlots[i].axis->axis(QCPAxis::atBottom)->setRange(lowerBound, timeSec+1);
+        }
+    }
+
+    ui->tonguePlot->replot();
+}
+
+void PatientDialog::updateRefTongue(QVector<LocaData> refLocaData)
+{
+    // Add point to localization graphs
+    foreach (LocaData data, refLocaData ) {
+
+        locaTrajPlots[0].refCurve->addData(data.time, data.x, data.y);
+        locaTrajPlots[1].refCurve->addData(data.time, data.x, data.z);
+        locaTrajPlots[2].refCurve->addData(data.time, data.y, data.z);
+
+        locaTimePlots[0].refGraph->addData(data.time, data.x);
+        locaTimePlots[1].refGraph->addData(data.time, data.y);
+        locaTimePlots[2].refGraph->addData(data.time, data.z);
+    }
+
+    ui->tonguePlot->replot();
+}
+
+void PatientDialog::clearTonguePlot()
+{
+    // Clear all trajectory plots data
+    for (int i = 0; i < 3; i++) {
+        locaTrajPlots[i].graph->clearData();
+        locaTrajPlots[i].refCurve->clearData();
+
+        locaTimePlots[i].graph->clearData();
+        locaTimePlots[i].refGraph->clearData();
+        locaTimePlots[i].axis->axis(QCPAxis::atBottom)->setRange(*locaTimePlots[i].timeRange);
+        locaTimePlots[i].axis->axis(QCPAxis::atLeft)->setRange(*locaTimePlots[i].YRange);
+    }
+}
 
 /*  Cleaning */
 PatientDialog::~PatientDialog()

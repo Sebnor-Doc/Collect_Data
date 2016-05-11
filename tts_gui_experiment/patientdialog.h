@@ -20,6 +20,7 @@ public:
 private:
     Ui::PatientDialog *ui;
     int numTrials;
+    VideoMode videoMode;
 
     // Score plot
     QVector<QCPBars*> locaBars;
@@ -44,11 +45,28 @@ private:
 
     Waveform waveform;
 
-    // Tongue Trajectory
+    // Tongue Tracking
+    struct LocaTrajPlot {
+        QCPCurve *graph;    // Keep the historic of tongue movement
+        QCPCurve *refCurve;
+        QCPGraph *leadDot;  // disc tracer of current magnet position
+        QCPAxisRect *axis;
+    };
+    LocaTrajPlot locaTrajPlots[3];
+
+    struct LocaTimePlot {
+        QCPGraph *graph;
+        QCPGraph *refGraph;
+        QCPAxisRect *axis;
+        QCPRange *timeRange;
+        QCPRange *YRange;
+    };
+    LocaTimePlot locaTimePlots[3];
 
 public:
     void setScorePlot(int numTrials);
     void setAudioWaveform();
+    void setTonguePlot();
     void setCurrentTrial(int trial);
     void setNextTrial(int nextTrial);
     void showScores(bool show);
@@ -58,7 +76,10 @@ public slots:
     void updateScores(Scores scores);
     void updateVideo(QPixmap image);
     void updateWaveform(AudioSample sample, bool ref = false);
+    void updateTongue(LocaData locaData);
+    void updateRefTongue(QVector<LocaData> refLocaData);
     void recording(bool isRecording);
+    void updateVideoMode(VideoMode videoMode);
 
 private slots:
     void on_bioFeedCheckBox_toggled(bool checked);
@@ -66,6 +87,7 @@ private slots:
 private:
     void clearScorePlot();
     void clearAudioWaveform();
+    void clearTonguePlot();
 };
 
 #endif // PATIENTDIALOG_H
