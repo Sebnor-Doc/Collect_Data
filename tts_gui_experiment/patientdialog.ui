@@ -163,11 +163,11 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="bottom_layout" stretch="1,1,1">
+    <layout class="QHBoxLayout" name="bottom_layout" stretch="1,2,1">
      <item>
       <layout class="QVBoxLayout" name="video_layout" stretch="1,5,2,0">
        <property name="sizeConstraint">
-        <enum>QLayout::SetMinimumSize</enum>
+        <enum>QLayout::SetFixedSize</enum>
        </property>
        <item>
         <layout class="QHBoxLayout" name="play_ref_layout"/>
@@ -218,7 +218,7 @@
        <property name="autoFillBackground">
         <bool>true</bool>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
+       <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,3">
         <item>
          <widget class="QCustomPlot" name="audioPlot" native="true"/>
         </item>
