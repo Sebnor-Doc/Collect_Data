@@ -11,6 +11,7 @@ PatientDialog::PatientDialog(QWidget *parent) : QDialog(parent), ui(new Ui::Pati
     sp_retain.setRetainSizeWhenHidden(true);
     ui->scorePlot->setSizePolicy(sp_retain);
 
+
     ui->bioFeedWidget->setVisible(false);
 
     // Add labels for reference
