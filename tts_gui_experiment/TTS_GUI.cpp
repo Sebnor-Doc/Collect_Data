@@ -374,10 +374,6 @@ void MainWindow::on_measureEMFButton_clicked()
 
     // Record mag data for 1 second
     QTimer::singleShot(1000, this, SLOT(saveEMF()));
-
-    if (mode == SUB_VFB || mode == SUB_NO_SCORE) {
-        vfbManager->setEmfPath(emfFile);
-    }
 }
 
 void MainWindow::saveEMF() {
@@ -434,9 +430,8 @@ void MainWindow::saveEMF() {
     }
     avgEmfFile.close();
 
-    // Update buttons status
-    updateButtonsAfterEMF();
-
+    // post EMF updates
+    updateAfterEMF();
 }
 
 void MainWindow::on_reuseEMFButton_clicked()
@@ -458,7 +453,6 @@ void MainWindow::on_reuseEMFButton_clicked()
             emfSensor[0] = emfVals[0].toDouble();
             emfSensor[1] = emfVals[1].toDouble();
             emfSensor[2] = emfVals[2].toDouble();
-            qDebug() << QString("Sensor %1: %2  ,  %3  ,  %4").arg(i).arg(emfSensor[0]).arg(emfSensor[1]).arg(emfSensor[2]);
             sensors[i]->setEMF(emfSensor);
         }
     }
@@ -475,17 +469,21 @@ void MainWindow::on_reuseEMFButton_clicked()
 
     emfFileHandle.close();
 
-    // Update buttons status
-    updateButtonsAfterEMF();
+    // post EMF updates
+    updateAfterEMF();
 }
 
-void MainWindow::updateButtonsAfterEMF() {
+void MainWindow::updateAfterEMF() {
+
+    // Set EMF Filepaths for Ref and Sub in vfbManager
+    if (mode == SUB_VFB || mode == SUB_NO_SCORE) {
+        vfbManager->setEmfPath(emfFile);
+    }
+
     // Update buttons status
     ui->measureEMFButton->setText("EMF Measured!");
-
     ui->measureEMFButton->setEnabled(false);
     ui->reuseEMFButton->setEnabled(false);
-
     ui->startStopTrialButton->setEnabled(true);
 }
 

@@ -284,18 +284,6 @@ void ScoreGen::computeScore(RefSubFilePaths paths) {
     mwArray refEmfFile(refEmfFilePath.toLatin1().constData());
     mwArray subEmfFile(subEmfFilePath.toLatin1().constData());
 
-    qDebug() << "Ref Loca = " << paths.refLoca;
-    qDebug() << "Sub Loca = " << paths.subLoca;
-
-    qDebug() << "Ref Audio = " << paths.refAudio;
-    qDebug() << "Sub Audio = " << paths.subAudio;
-
-    qDebug() << "Ref Mag = " << paths.refMag;
-    qDebug() << "Sub Mag = " << paths.subMag;
-
-    qDebug() << "Ref Video = " << paths.refLips;
-    qDebug() << "Sub Video = " << paths.subLips;
-
     // Perform score generation
     Scores scores;
 

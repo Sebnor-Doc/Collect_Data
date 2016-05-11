@@ -160,7 +160,7 @@ private:
     void clearPlots();
     void setWaveform();
     void setFilePath();
-    void updateButtonsAfterEMF();
+    void updateAfterEMF();
     QVector<double> parseVector(QString myString, bool matrix);
     QString parseUtter(QString rawUtter);
     void showVfbWidgets(bool isVfbSub);
