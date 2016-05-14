@@ -23,7 +23,9 @@ SOURCES += main.cpp\
     localization.cpp \
     voicemanager.cpp \
     vfbmanager.cpp \
-    patientdialog.cpp
+    patientdialog.cpp \
+    datachecker.cpp \
+    parser.cpp
 
 HEADERS  += TTS_GUI.h \
     qcustomplot.h \
@@ -37,7 +39,9 @@ HEADERS  += TTS_GUI.h \
     voicemanager.h \
     vfbmanager.h \
     typedef.h \
-    patientdialog.h
+    patientdialog.h \
+    datachecker.h \
+    parser.h
 
 FORMS    += \
     TTS_GUI.ui \

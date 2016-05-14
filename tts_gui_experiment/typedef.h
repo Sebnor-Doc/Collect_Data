@@ -60,5 +60,15 @@ const int dontcare5 = qRegisterMetaType<VideoMode>("VideoMode");
 // Video data
 const int dontcare6 = qRegisterMetaType< QVector<QPoint> >("QVector<QPoint>");
 
+
+// Data Checker
+struct BadTrial {
+    QString category;
+    QString utter;
+    int trial;
+};
+
+
+
 #endif // TYPEDEF
 

@@ -12,6 +12,8 @@
 #include <QCameraInfo>
 #include <QtXml>
 
+#include "parser.h"
+
 
 // Constructor
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWindow)
@@ -79,6 +81,10 @@ void MainWindow::on_configButton_clicked()
 
     // Setup procedures
     setupExperiment();
+
+    // Initialize Data Checker
+    dataChecker.setNumTrials(numTrials);
+    dataChecker.setRootDir(experiment_root);
 
     // Initialize Localization Thread
     QThread *locaThread = new QThread(this);
@@ -278,7 +284,7 @@ void MainWindow::setupExperiment()
 
         for (int j = 0; j < utter.at(i)->size(); j++)
         {
-            QString word = parseUtter(utter.at(i)->at(j));
+            QString word = Parser::parseUtter(utter.at(i)->at(j));
             QString utterPath = classPath + "/" + word;
 
             if (!QDir().mkdir(utterPath)){
@@ -353,6 +359,10 @@ void MainWindow::loadExperimentFile(QString experimentFile)
                 utter.back()->append(line.trimmed());
             }
         }
+
+        // Pass the list of categories (or classes) and utterance
+        // to data checker for final check
+        dataChecker.setLists(classUtter, utter);
     }
     else {
         qDebug() << "Cannot open experiment file located at:\n" << experimentFile << endl;
@@ -543,28 +553,53 @@ void MainWindow::stopTrial(){
 
     if (mode == SUB_VFB || mode == SUB_NO_SCORE) {
 
+        ui->startStopTrialButton->setEnabled(false);
+        ui->playRefButton->setEnabled(false);
+
         if( (trialIdx + 1) < numTrials ) {
             // Update to next trial
             ui->trialBox->setCurrentIndex(trialIdx + 1);
         }
 
-        else if ( (utterIdx + 1) < numUtter ) {
-            // Update to next utterance of current class
-            ui->utteranceBox->setCurrentIndex(utterIdx + 1);
-            ui->trialBox->setCurrentIndex(0);
-        }
-
-        else if ( (classIdx + 1) < numClass ) {
-            // Update to next class
-            ui->classBox->setCurrentIndex(classIdx + 1);
-            ui->trialBox->setCurrentIndex(0);
-        }
-
         else {
-            // Session is over, all utterances haven been recorded
-            sessionCompleted = true;
-            QString newUtter = formatUtterance(utter.at(classIdx)->at(utterIdx));
-            ui->utteranceEdit->setPlainText(newUtter);
+
+            QVector<int> badTrials = dataChecker.checkUtter(experiment_class, experiment_utter);
+
+            if (!badTrials.isEmpty()) {
+                QString msg = QString("Recollect data for the following missing or corrupted trials:");
+
+                foreach (int trialIdx, badTrials) {
+                    msg += "\nTrial = " + QString::number(trialIdx) + ";";
+                }
+
+                QMessageBox msgBox;
+                msgBox.setText(msg);
+                msgBox.exec();
+
+                ui->startStopTrialButton->setEnabled(true);
+                ui->playRefButton->setEnabled(true);
+            }
+
+            else if ( (utterIdx + 1) < numUtter ) {
+
+                // Update to next utterance of current class
+                ui->utteranceBox->setCurrentIndex(utterIdx + 1);
+                ui->trialBox->setCurrentIndex(0);
+            }
+
+            else if ( (classIdx + 1) < numClass ) {
+
+                // Update to next class
+                ui->classBox->setCurrentIndex(classIdx + 1);
+                ui->trialBox->setCurrentIndex(0);
+            }
+
+            else {
+                // Session is over, all utterances haven been recorded
+                sessionCompleted = true;
+                QString newUtter = formatUtterance(utter.at(classIdx)->at(utterIdx));
+                ui->utteranceEdit->setPlainText(newUtter);
+            }
         }
     }
 
@@ -597,24 +632,60 @@ void MainWindow::stopTrial(){
         }
     }
 
-
-    // Manage the status of
-    if (mode == SUB_VFB || mode == SUB_NO_SCORE) {
-        ui->startStopTrialButton->setEnabled(false);
-        ui->playRefButton->setEnabled(false);
-    }
-
     ui->videoPlaybackRadio->setEnabled(true);
 
-    // Update start/stop button text based on session completion status
+    // Perform data check for all utterances if session is completed
     if (sessionCompleted) {
-        ui->startStopTrialButton->setText("Done!");       
+
+        bool isDataGood = checkAllData();
+
+        if (!isDataGood) {
+
+            ui->startStopTrialButton->setEnabled(true);
+            ui->playRefButton->setEnabled(true);
+
+            sessionCompleted = false;
+        }
     }
-    else {
-        ui->startStopTrialButton->setText("Start");
-    }
+
+    // Update start/stop button text based on session completion status
+    QString buttonTxt = (sessionCompleted) ? "Done!" : "Start";
+    ui->startStopTrialButton->setText(buttonTxt);
 }
 
+void MainWindow::on_checkDataButton_clicked()
+{
+    checkAllData();
+}
+
+bool MainWindow::checkAllData()
+{
+    QVector<BadTrial> badTrials = dataChecker.checkAll();
+
+    if (!badTrials.isEmpty()) {
+
+        QString msg = QString("Recollect data for the following trials (category - utterance - trial):");
+
+        foreach (BadTrial badTrial, badTrials) {
+            msg += QString("\n%1  -  %2  -  %3").arg(badTrial.category).arg(badTrial.utter).arg(badTrial.trial);
+        }
+
+        QMessageBox msgBox;
+        msgBox.setText(msg);
+        msgBox.exec();
+
+        return false;
+    }
+
+    else {
+        QMessageBox msgBox;
+        msgBox.setText("All Good! No missing data.");
+        msgBox.exec();
+        return true;
+    }
+
+
+}
 
 /* Graph Sensor data */
 void MainWindow::on_showMagButton_toggled(bool checked)
@@ -1181,7 +1252,7 @@ void MainWindow::on_classBox_currentIndexChanged(int index)
     // Populate list of utterances for this class
     for(int j = 0; j < utter.at(index)->size(); j++)
     {
-        QString currentUtter = parseUtter(utter.at(index)->at(j));
+        QString currentUtter = Parser::parseUtter(utter.at(index)->at(j));
         QString formatUtter = currentUtter + "\t\t" + QString::number(j+1) + "/" + QString::number(utter.at(index)->size());
         ui->utteranceBox->addItem(formatUtter);
     }
@@ -1220,7 +1291,7 @@ void MainWindow::setFilePath()
     experiment_class.truncate(40);
     experiment_class = experiment_class.trimmed();
 
-    experiment_utter = parseUtter(utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex()));
+    experiment_utter = Parser::parseUtter(utter.at(ui->classBox->currentIndex())->at(ui->utteranceBox->currentIndex()));
 
     currentTrial = ui->trialBox->currentIndex() + 1;
 
@@ -1275,36 +1346,6 @@ QVector<double> MainWindow::parseVector(QString myString, bool matrix)
     return output;
 }
 
-QString MainWindow::parseUtter(QString rawUtter) {
-
-    QString parsedUtter;
-
-    // For Second Language Learner protocol,
-    // Keep only the first part (english phonetic representation)
-    // if the utter contains translation and original language
-    if (rawUtter.contains(";")) {
-        int idxSemiCol = rawUtter.indexOf(";");
-        parsedUtter = (idxSemiCol != 0) ? rawUtter.left(idxSemiCol) : "";
-    }
-    else {
-        parsedUtter = rawUtter;
-    }
-
-    // Remove special characters that cannot be used as folder/file name
-    QStringList specialChar;
-    specialChar << "?" << ":" << "/" << "\\" << "*" << "<" << ">" << "|";
-
-    foreach (QString charac, specialChar) {
-        parsedUtter.remove(charac);
-    }
-
-    // Format the utterance by removing empty spaces and reduce length
-    parsedUtter.truncate(40);
-    parsedUtter = parsedUtter.trimmed();
-
-    return parsedUtter;
-}
-
 QString MainWindow::formatUtterance(QString rawUtter)
 {
     QString formatUtter;
@@ -1349,3 +1390,5 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
+
+

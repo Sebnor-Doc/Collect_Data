@@ -14,6 +14,7 @@
 #include "voicemanager.h"
 #include "vfbmanager.h"
 #include "patientdialog.h"
+#include "datachecker.h"
 
 #include <QVector>
 #include <QAudioRecorder>
@@ -46,6 +47,8 @@ private:
     QVector<Sensor*> sensors;
     ReadSensors rs;   
     Localization loca;
+    DataChecker dataChecker;
+
 
     // Mode selection
     enum Mode { NO_VFB, REF_VFB, SUB_VFB, SUB_NO_SCORE };
@@ -146,6 +149,8 @@ private slots:
     void scoreGenerated();
 
 
+    void on_checkDataButton_clicked();
+
 private:
     void loadConfig();
     void loadCalibration(QString calibFilename);
@@ -161,8 +166,8 @@ private:
     void setWaveform();
     void setFilePath();
     void updateAfterEMF();
+    bool checkAllData();
     QVector<double> parseVector(QString myString, bool matrix);
-    QString parseUtter(QString rawUtter);
     void showVfbWidgets(bool isVfbSub);
     QString formatUtterance(QString rawUtter);
 
