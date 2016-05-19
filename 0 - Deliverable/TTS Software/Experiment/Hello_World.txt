@@ -1,0 +1,6 @@
+﻿%% FORMAT - Pronunciation; Word in Korean; Meaning
+
+Iterations: 5
+
+class: Hello
+Hello World

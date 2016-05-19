@@ -1,0 +1,52 @@
+﻿%% FORMAT - Pronunciation; Word in Korean; Meaning
+
+Iterations: 8
+
+class: Days
+ilyoil; 일요일 ; Sunday
+wolyoil; 월요일 ; Monday 
+hwayoil; 화요일 ; Tuesday
+suyoil; 수요일 ; Wednesday 
+mog-yoil; 목요일 ; Thursday
+geumyoil; 금요일 ; Friday 
+toyoil; 토요일 ; Saturday 
+
+
+class: Numbers
+hana; 하나 ; 1
+dul; 둘 ; 2
+set; 셋 ; 3
+net; 넷 ; 4 
+daseot; 다섯 ; 5
+yeoseot; 여섯 ; 6 
+ilgob; 일곱 ; 7
+yeodeol; 여덟 ; 8
+ahop; 아홉 ; 9 
+yeol; 열 ; 10
+
+
+class: Words
+hangugeo; 한국어 ; Korean 
+junggugeo; 중국어 ; Chinese 
+ilboneo; 일본어 ; Japanese  
+annyeong; 안녕; Hello (informal)
+yeoboseyo; 여보세요; Hello (on the phone)
+butakamnida; 부탁합니다; Please
+ye-ne; 예/네; Yes
+aniyo;아니요; No
+annyeonhi gaseyo; 안녕히 가세요; Goodbye
+museun; 무슨?; Which?
+mwo; 뭐? ; What?
+eodi; 어디?; Where?
+nugu; 누구?; Who? 
+eonje; 언제?; When? 
+
+
+class: Phrases
+eolma; 얼마?; How much? 
+algesseumnida; 알겠습니다; I understand. 
+apeumnida; 아픕니다; I'm sick. 
+gamsahamnida; 감사합니다 ; Thank you. 
+cheonman-imnida; 천만입니다; You're welcome. 
+sillyehamnida; 실례합니다; Excuse me.
+joesonghamnida; 죄송합니다; I'm sorry. 
