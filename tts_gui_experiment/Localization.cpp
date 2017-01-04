@@ -15,8 +15,6 @@ Localization::Localization(QObject *parent) : QObject(parent) {
 
 void Localization::init(QVector<Sensor*> sensors, Magnet &magnet)
 {
-    prevPacketId = 0;
-
     locaWorker.init(sensors, magnet);
 }
 
@@ -35,13 +33,7 @@ void Localization::start(){
 
 void Localization::processMag(MagData magData){
 
-    qint16 packetIdDiff = static_cast<qint16>(magData.id) - prevPacketId;
-
-    if (packetIdDiff < 0 || packetIdDiff > 2) {
-        prevPacketId = magData.id;
-        emit packetToLoca(magData, filename);
-    }
-
+    emit packetToLoca(magData, filename);
 }
 
 void Localization::processLoca(LocaData locaData){
