@@ -81,7 +81,6 @@ void VideoThread::displayVideo(VideoMode mode)
         connect(&readThread, SIGNAL(newFrame(Mat*)), this, SLOT(emitVideo(Mat*)));
     }
 
-
     else if (mode == REPLAY_SUB || mode == REPLAY_REF) {
 
         int upperFrameIdx = static_cast<int>(replayVideo.get(CAP_PROP_FRAME_COUNT)) - 1;

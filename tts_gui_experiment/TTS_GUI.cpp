@@ -734,11 +734,11 @@ void MainWindow::setVideo() {
     connect(this, SIGNAL(subOutPathSig(QString)), &video, SLOT(setSubFilename(QString)));
 
     // Select a radio button calls videoManager to set the display mode
-    connect(ui->videoShowRadio,     SIGNAL(toggled(bool)), this, SLOT(videoManager()));
-    connect(ui->videoShowLipsRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
-    connect(ui->videoBWRadio,       SIGNAL(toggled(bool)), this, SLOT(videoManager()));
-    connect(ui->videoPlaybackRadio, SIGNAL(toggled(bool)), this, SLOT(videoManager()));
-    connect(ui->videoHideRadio,     SIGNAL(toggled(bool)), this, SLOT(videoManager()));
+    connect(ui->videoShowRadio,     SIGNAL(clicked(bool)), this, SLOT(videoManager()));
+    connect(ui->videoShowLipsRadio, SIGNAL(clicked(bool)), this, SLOT(videoManager()));
+    connect(ui->videoBWRadio,       SIGNAL(clicked(bool)), this, SLOT(videoManager()));
+    connect(ui->videoPlaybackRadio, SIGNAL(clicked(bool)), this, SLOT(videoManager()));
+    connect(ui->videoHideRadio,     SIGNAL(clicked(bool)), this, SLOT(videoManager()));
 
     connect(this, SIGNAL(videoMode(VideoMode)), &video, SLOT(displayVideo(VideoMode)));
 
