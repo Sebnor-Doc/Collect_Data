@@ -81,7 +81,6 @@ private:
     QString filename;
     QFile outputFile;
     QTextStream outputStream;
-    qint16 prevPacketId;
 };
 
 #endif // LOCALIZATION_H
