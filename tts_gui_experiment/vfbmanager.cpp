@@ -243,16 +243,16 @@ ScoreGen::ScoreGen(QObject *parent) : QObject(parent) {}
 
 void ScoreGen::startMatlabEngine()
 {
-    mclmcrInitialize();
+//    mclmcrInitialize();
 
-    bool mclInitApp         = mclInitializeApplication(NULL, 0);
-    bool locaInitSuccess    = LocalizationScoreInitialize();
-    bool audioInitSuccess   = AudioScoreInitialize();
-    bool magInitSuccess     = MagneticScoreInitialize();
-    bool videoInitSuccess   = VideoScoreInitialize();
+//    bool mclInitApp         = mclInitializeApplication(NULL, 0);
+//    bool locaInitSuccess    = LocalizationScoreInitialize();
+//    bool audioInitSuccess   = AudioScoreInitialize();
+//    bool magInitSuccess     = MagneticScoreInitialize();
+//    bool videoInitSuccess   = VideoScoreInitialize();
 
-    qDebug() << QString("Matlab DLLs Init. Status: MCL = %1 , Loca = %2 , Audio = %3 , Mag = %4 , Video = %5")
-                .arg(mclInitApp).arg(locaInitSuccess).arg(audioInitSuccess).arg(magInitSuccess).arg(videoInitSuccess);
+//    qDebug() << QString("Matlab DLLs Init. Status: MCL = %1 , Loca = %2 , Audio = %3 , Mag = %4 , Video = %5")
+//                .arg(mclInitApp).arg(locaInitSuccess).arg(audioInitSuccess).arg(magInitSuccess).arg(videoInitSuccess);
 }
 
 void ScoreGen::setEmfFile(QString refEmf, QString subEmf)
@@ -263,47 +263,47 @@ void ScoreGen::setEmfFile(QString refEmf, QString subEmf)
 
 void ScoreGen::computeScore(RefSubFilePaths paths) {
 
-    QString trainModelQStr      = QString(QCoreApplication::applicationDirPath() + "/trainedModel.mat");
-    QString uniformLBP8QStr     = QString(QCoreApplication::applicationDirPath() + "/UniformLBP8.txt");
+//    QString trainModelQStr      = QString(QCoreApplication::applicationDirPath() + "/trainedModel.mat");
+//    QString uniformLBP8QStr     = QString(QCoreApplication::applicationDirPath() + "/UniformLBP8.txt");
 
-    // Convert QString type to Matlab mwArray type
-    mwArray refTrajFile(paths.refLoca.toLatin1().constData());
-    mwArray subTrajFile(paths.subLoca.toLatin1().constData());
+//    // Convert QString type to Matlab mwArray type
+//    mwArray refTrajFile(paths.refLoca.toLatin1().constData());
+//    mwArray subTrajFile(paths.subLoca.toLatin1().constData());
 
-    mwArray refAudioFile(paths.refAudio.toLatin1().constData());
-    mwArray subAudioFile(paths.subAudio.toLatin1().constData());
+//    mwArray refAudioFile(paths.refAudio.toLatin1().constData());
+//    mwArray subAudioFile(paths.subAudio.toLatin1().constData());
 
-    mwArray refMagFile(paths.refMag.toLatin1().constData());
-    mwArray subMagFile(paths.subMag.toLatin1().constData());
+//    mwArray refMagFile(paths.refMag.toLatin1().constData());
+//    mwArray subMagFile(paths.subMag.toLatin1().constData());
 
-    mwArray refVideoFile(paths.refLips.toLatin1().constData());
-    mwArray subVideoFile(paths.subLips.toLatin1().constData());
-    mwArray videoTrainingModelFile(trainModelQStr.toLatin1().constData());
-    mwArray videoUniformLBP8File(uniformLBP8QStr.toLatin1().constData());
+//    mwArray refVideoFile(paths.refLips.toLatin1().constData());
+//    mwArray subVideoFile(paths.subLips.toLatin1().constData());
+//    mwArray videoTrainingModelFile(trainModelQStr.toLatin1().constData());
+//    mwArray videoUniformLBP8File(uniformLBP8QStr.toLatin1().constData());
 
-    mwArray refEmfFile(refEmfFilePath.toLatin1().constData());
-    mwArray subEmfFile(subEmfFilePath.toLatin1().constData());
+//    mwArray refEmfFile(refEmfFilePath.toLatin1().constData());
+//    mwArray subEmfFile(subEmfFilePath.toLatin1().constData());
 
     // Perform score generation
     Scores scores;
 
-    mwArray locaScoreML;
-    locaScoreMain(1, locaScoreML, refTrajFile, subTrajFile, refAudioFile, subAudioFile);
-    scores.loca = locaScoreML(1,1);
+//    mwArray locaScoreML;
+//    locaScoreMain(1, locaScoreML, refTrajFile, subTrajFile, refAudioFile, subAudioFile);
+//    scores.loca = locaScoreML(1,1);
 
-    mwArray audioScoreML;
-    audioScoreMain(1, audioScoreML, refAudioFile, subAudioFile);
-    scores.voice = audioScoreML(1,1);
+//    mwArray audioScoreML;
+//    audioScoreMain(1, audioScoreML, refAudioFile, subAudioFile);
+//    scores.voice = audioScoreML(1,1);
 
-    mwArray magScoreML;
-    magneticScoreMain(1, magScoreML, refMagFile, subMagFile, refAudioFile, subAudioFile, refEmfFile, subEmfFile);
-    scores.mag = magScoreML(1,1);
+//    mwArray magScoreML;
+//    magneticScoreMain(1, magScoreML, refMagFile, subMagFile, refAudioFile, subAudioFile, refEmfFile, subEmfFile);
+//    scores.mag = magScoreML(1,1);
 
-    mwArray videoScoreML;
-    videoScoreMain(1, videoScoreML, videoTrainingModelFile, videoUniformLBP8File, refVideoFile, subVideoFile, refAudioFile, subAudioFile);
-    scores.lips = videoScoreML(1,1);
+//    mwArray videoScoreML;
+//    videoScoreMain(1, videoScoreML, videoTrainingModelFile, videoUniformLBP8File, refVideoFile, subVideoFile, refAudioFile, subAudioFile);
+//    scores.lips = videoScoreML(1,1);
 
-    scores.avg = (scores.loca + scores.voice + scores.mag + scores.lips) / 4.0;
+//    scores.avg = (scores.loca + scores.voice + scores.mag + scores.lips) / 4.0;
 
     emit scoreSig(scores, paths);
 }

@@ -1,0 +1,46 @@
+Iterations: 3
+
+class: interdental
+thin
+this
+th
+
+class: alveolar
+tail
+t
+doll
+d
+say
+s
+zoo
+z
+no
+n
+law
+l
+
+class: palatal
+shoe
+sh
+pleasure
+sure
+chief
+ch
+jam
+j
+red
+r
+yes
+ye
+
+class: velar
+cut
+k
+go
+g
+thing
+ng
+won
+w
+why
+wh

@@ -66,7 +66,11 @@ QVector<int> DataChecker::checkUtter(QString cat, QString utter) {
         }
     }
 
-    return badTrials;
+//    return badTrials;
+
+    // NOTE: Remove this line for actual datachecking
+    QVector<int> bogus;
+    return bogus;
 }
 
 QVector<BadTrial> DataChecker::checkAll(){
